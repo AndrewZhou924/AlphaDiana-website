@@ -1,0 +1,86 @@
+.box {
+  overflow: hidden;
+  background: #fff;
+  color: #24292f;
+  border: 1px solid var(--diana-gray-200, #e5e7eb);
+  border-radius: var(--diana-border-radius, 12px);
+  box-shadow: 0 14px 35px rgba(15, 23, 42, 0.08);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--diana-gray-200, #e5e7eb);
+  background: var(--diana-gray-100, #f3f4f6);
+  font-size: 0.85rem;
+  color: #667085;
+}
+
+.language {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+
+.copyButton {
+  background: var(--ifm-color-primary);
+  color: #fff;
+  border: 0;
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copyButton:hover {
+  background: var(--ifm-color-primary-dark);
+  transform: translateY(-1px);
+}
+
+.copyButton:active {
+  transform: translateY(0);
+}
+
+.code {
+  margin: 0;
+  font-family: var(--ifm-font-family-monospace);
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #24292f;
+  font-size: 0.98rem;
+  line-height: 1.6;
+  background: #f6f8fa;
+  padding: 1.5rem;
+  border: 0;
+  border-radius: 0;
+}
+
+.codeLine {
+  display: block;
+  min-height: 1.6em;
+}
+
+:global([data-theme='dark']) .box {
+  background: #fff;
+  color: #24292f;
+  border-color: #d0d7de;
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.3);
+}
+
+:global([data-theme='dark']) .header {
+  color: #667085;
+  background: #f3f4f6;
+  border-bottom-color: #d0d7de;
+}
+
+:global([data-theme='dark']) .copyButton {
+  color: #fff;
+}
+
+:global([data-theme='dark']) .code {
+  color: #24292f;
+  background: #f6f8fa;
+}
