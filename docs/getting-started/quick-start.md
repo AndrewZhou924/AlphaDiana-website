@@ -43,8 +43,8 @@ key from config first, then from environment variables. For a local vLLM server
 set:
 
 ```bash
-# These names match configs/examples/direct_llm.yaml and the loader fallbacks.
-export OPENAI_MODEL_NAME="Qwen/Qwen3-235B-A22B"
+# These names match configs/macro_runs/aime2026_directllm_qwen35_27b.yaml and the loader fallbacks.
+export OPENAI_MODEL_NAME="Qwen/Qwen3.5-27B"
 export OPENAI_BASE_URL="http://127.0.0.1:8011/v1"
 export OPENAI_API_KEY="sk-EMPTY"
 ```
@@ -56,26 +56,29 @@ key.
 
 ## 2. Write (or point to) a config
 
-A ready-made example ships at `configs/examples/direct_llm.yaml`. It is also
-present in the public repository's default branch. The shape is:
+A ready-made example ships at
+`configs/macro_runs/aime2026_directllm_qwen35_27b.yaml`. Its essential fields
+are shown below; use the checked-in file as the source of truth:
 
 ```yaml
-run_id: ""              # blank → auto-generated uuid4().hex[:12]
+run_id: macro_aime2026_directllm_qwen35_27b
 
 agent:
   name: direct_llm
   version: "1.0"
   config:
-    model: ""            # falls back to OPENAI_MODEL_NAME
-    api_base: ""         # falls back to OPENAI_BASE_URL
-    api_key: ""          # falls back to OPENAI_API_KEY
-    temperature: 0.6
-    max_tokens:
+    model: "${OPENAI_MODEL_NAME}"
+    api_base: "${OPENAI_BASE_URL}"
+    api_key: "${OPENAI_API_KEY}"
+    temperature: 0.0
+    top_p: 0.95
+    max_tokens: 32768
+    stream: true
 
 benchmark:
   name: aime
   config:
-    dataset: "HuggingFaceH4/aime_2024"
+    dataset: MathArena/aime_2026
     split: "train"
 
 scorer:
@@ -84,7 +87,10 @@ scorer:
     tolerance: 1e-6
 
 max_concurrent: 1
-output_dir: "./results"
+num_samples: 1
+output_dir: ./results
+strict_report: true
+strict_isolation: true
 ```
 
 `$VAR` / `${VAR}` placeholders are expanded from the environment at load time.
@@ -130,7 +136,7 @@ anything. It blocks on hard errors (missing `agent.name`, an `agent.version`
 with no digit, `max_concurrent` out of range, a scorer mismatch, and so on):
 
 ```bash
-alphadiana validate configs/examples/direct_llm.yaml \
+alphadiana validate configs/macro_runs/aime2026_directllm_qwen35_27b.yaml \
   -o benchmark.config.max_tasks=1
 ```
 
@@ -144,14 +150,14 @@ You can layer overrides on either `validate` or `run`. Each `-o a.b.c=value` is
 parsed into a nested dict and auto-cast to bool/int/float:
 
 ```bash
-alphadiana validate configs/examples/direct_llm.yaml \
+alphadiana validate configs/macro_runs/aime2026_directllm_qwen35_27b.yaml \
   -o benchmark.config.max_tasks=20
 ```
 
 ## 4. Run
 
 ```bash
-alphadiana run configs/examples/direct_llm.yaml \
+alphadiana run configs/macro_runs/aime2026_directllm_qwen35_27b.yaml \
   -o run_id=quickstart_aime_directllm_t1_k1 \
   -o benchmark.config.max_tasks=1 \
   -o num_samples=1
@@ -168,7 +174,7 @@ checkpoint-complete rather than retried. To ignore the checkpoint and
 recompute everything:
 
 ```bash
-alphadiana run configs/examples/direct_llm.yaml --redo-all \
+alphadiana run configs/macro_runs/aime2026_directllm_qwen35_27b.yaml --redo-all \
   -o run_id=quickstart_aime_directllm_t1_k1 \
   -o benchmark.config.max_tasks=1 \
   -o num_samples=1
@@ -276,3 +282,9 @@ the validator only requires a positive integer.
   tools, sandboxes, and memory.
 - Tune the run YAML, overrides, and run-id conventions in
   [Configuration](../configuration/).
+
+## Paper protocol and Python interfaces
+
+The one-task commands above are smoke tests. The public macro configuration currently uses one sample, temperature 0, and a 32,768-token limit; these are not the paper's AIME settings. For the published task counts, sampling, and time budgets, see [Paper and published results](../paper). A full reproduction must also match prompts, harness versions, environments, and scoring.
+
+Figure 4 presents Python composition. Check [API concepts and version availability](./python-api) before using its schematic calls with a public release.

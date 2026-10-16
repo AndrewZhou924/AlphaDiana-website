@@ -1,0 +1,65 @@
+---
+sidebar_position: 2
+title: Paper and published results
+---
+
+import { paperBibtex } from '@site/src/data/publication';
+
+# Paper and published results
+
+**AlphaDiana: A Measurement System for Agents in Verifiable Reasoning Tasks** was published on arXiv on 14 October 2026.
+
+[Read the paper](https://arxiv.org/abs/2610.20675) · [PDF](https://arxiv.org/pdf/2610.20675) · [Public code](https://github.com/tmlr-group/AlphaDiana)
+
+The results on this website follow **arXiv:2610.20675v1**, specifically Figure 5 and Appendices B.1, B.2, and C.5. They are published study results, not scores from the quick-start example or dashboard screenshots.
+
+## What the study measures
+
+AlphaDiana compares complete model-harness systems and links their answers to execution status, traces, and resource records. Macro analyses compare complete agents; micro interventions examine tools, skills, and memory under matched conditions. A change in tools can also change the prompt, so an intervention should be interpreted with its full configuration.
+
+The answer-based evaluation pairs **Qwen3.5-27B**, **Gemma-4-31B-IT**, and **Kimi-K2.6** with **OpenClaw 2026.3.7**, **ZeroClaw v0.6.9**, and **OpenCode v1.3.2**. Direct is the single-response, no-tool reference. Interactive evaluations use Qwen and Gemma with benchmark-native references.
+
+| Benchmark | Task input | Reported metric | Reference |
+| --- | --- | --- | --- |
+| AIME 26 | Text | Avg@4 and Pass@4 | Direct |
+| IMO-AnswerBench | Text | Avg@1 | Direct |
+| GPQA-Diamond | Text | Avg@1 | Direct |
+| HLE-Verifiable | Text | Avg@1 | Direct |
+| MMMU-Pro | Text and image | Avg@1 | Direct |
+| SWE Mini | Issue and repository; 50 SWE-bench Verified tasks | Avg@1 | SWE-Agent v1.1.0 |
+| Terminal-Bench 2 | Instruction and container; 89 tasks | Avg@1 | terminus-2 |
+
+The [homepage results table](/) shows all five answer-based benchmarks from Figure 5. The interactive results from the same figure are:
+
+| Model | Benchmark | Native reference | OpenClaw | ZeroClaw | OpenCode |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Qwen3.5-27B | SWE Mini | 48.0 | 46.0 | 48.0 | 46.0 |
+| Qwen3.5-27B | Terminal-Bench 2 | 39.3 | 29.2 | 14.6 | 14.6 |
+| Gemma-4-31B-IT | SWE Mini | 46.0 | 44.0 | 44.0 | 36.0 |
+| Gemma-4-31B-IT | Terminal-Bench 2 | 20.2 | 11.2 | 5.6 | 9.0 |
+
+Values are percentages. Interactive evaluation and runtime failures count as unsuccessful attempts.
+
+## Sampling and budgets
+
+- **AIME 26:** all 30 problems, four attempts per problem, temperature 0.6. Avg@4 is mean correctness across 120 attempts. Pass@4 is the fraction of problems solved at least once.
+- **Other macro benchmarks:** one attempt per problem (Avg@1).
+- **Within a model-task comparison:** the same task list and decoding policy, with top-p 0.95 and a per-request output limit of 131,072 tokens.
+- **Time limits:** a 9,300-second controller or request cap; OpenClaw also has a 9,000-second stream-total cap. ZeroClaw allows 100 tool iterations per run and 200 actions per hour.
+- **Default harness conditions:** native prompts and tools, without added skill libraries or instructions to use memory. Native memory remains available.
+
+The public AIME macro YAMLs checked on 17 October 2026 use one sample, temperature 0, and a 32,768-token limit. Those are runnable configuration defaults, not the AIME protocol above; use the paper settings explicitly for a reproduction.
+
+These limits do not equalize total computation: a harness can make several model calls. The paper's settings are an experimental protocol, not a claim about the defaults of every downloadable configuration.
+
+## Findings and limits
+
+Harness effects depend on the model and task. All three harnesses reduce Qwen's average accuracy on the five answer-based benchmarks, while ZeroClaw improves Gemma on all five. Skills and memory do not reliably improve accuracy. Correctness must also accompany behavior and resource measurements: low token entropy can occur in wrong answers, and fewer tokens per attempt need not mean fewer tokens per correct answer.
+
+Appendix B.2 notes incomplete output-token capture for several model-benchmark-harness combinations, including Qwen/AIME 26 with OpenClaw and ZeroClaw. Token means use attempts with recorded counts; missing usage is not evidence of zero consumption. Report capture coverage when comparing resource use.
+
+Wall-clock measurements include serving, tools, and scheduling. Serving configurations, concurrency, and load were not fully matched across all source runs. These are observed execution times, not isolated measurements of harness overhead. Appendix C.5 reports a separate matched-attempt analysis and time-cap sensitivity study.
+
+## Citation
+
+<pre>{paperBibtex}</pre>

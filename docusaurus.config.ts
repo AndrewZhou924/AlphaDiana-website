@@ -1,10 +1,11 @@
+import { paperTitle, paperUrl } from './src/data/publication';
 import type * as Preset from '@docusaurus/preset-classic';
 import type { Config } from '@docusaurus/types';
 import { themes as prismThemes } from 'prism-react-renderer';
 
 const config: Config = {
   title: 'AlphaDiana',
-  tagline: 'A System for Evaluating Reasoning Agents',
+  tagline: paperTitle.replace('AlphaDiana: ', ''),
   favicon: 'img/TMLR.ico',
 
   future: {
@@ -68,6 +69,7 @@ const config: Config = {
       },
       items: [
         { to: '/docs/intro', label: 'Docs', position: 'left' },
+        { href: paperUrl, label: 'Paper', position: 'left' },
         { href: 'https://github.com/tmlr-group/AlphaDiana', label: 'GitHub', position: 'right' },
       ],
     },
