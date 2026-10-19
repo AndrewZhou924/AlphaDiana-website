@@ -4,10 +4,6 @@ sidebar_position: 1
 
 # Benchmarks Overview
 
-For the seven benchmarks evaluated in arXiv:2610.20675v1, their baseline systems,
-and the published sampling and budget settings, see [Paper and published results](../paper).
-The implementation inventory below also includes benchmark paths outside that study.
-
 A benchmark in AlphaDiana is a self-registering loader that turns a dataset into
 a list of `BenchmarkTask` objects. The runner resolves the loader by name,
 calls its `load_tasks(config)`, and feeds each task to the selected harness and

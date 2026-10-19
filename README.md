@@ -4,23 +4,6 @@ This repository contains the public, static website and documentation for
 [AlphaDiana](https://alphadiana.org). It does not contain the evaluation runtime,
 datasets, run artifacts, credentials, or the dashboard backend.
 
-## Published content
-
-The homepage and study page follow [arXiv:2610.20675v1](https://arxiv.org/abs/2610.20675v1),
-published 14 October 2026. Publication metadata and BibTeX live in
-`src/data/publication.ts`. The scoreboard transcribes all 72 answer-based scores
-from Figure 5 and computes deltas from the displayed values; interactive results
-and measurement limits are documented in `docs/paper.mdx`.
-
-Original paper figures and provenance are in `static/img/paper/`. Do not replace
-published scores with local smoke-test or selectively retried results. Dashboard
-screenshots and Figure 4 contain illustrative runs, not additional scoreboard data.
-
-The `clean-website` branch of the development repository was consulted for the
-documentation layout. Its Python API instructions target a development revision;
-the public code snapshot does not export those factories yet. The API page makes
-that version boundary explicit and directs public-code users to the CLI guide.
-
 ## Local development
 
 Use Node.js 20 or newer:
