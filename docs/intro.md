@@ -5,10 +5,9 @@ slug: /intro
 
 # Welcome to AlphaDiana
 
-**AlphaDiana** is a *harness-aware* evaluation framework for reasoning agents on
-verifiable tasks. It measures not just *which model* you run, but *which agent
-scaffold (harness)* you wrap it in, because on the same benchmark the harness can
-matter as much as the model itself.
+**AlphaDiana** is a measurement system for agents in verifiable reasoning tasks. It links execution conditions to outcomes, behavior, and resource use through modular interfaces for datasets, agents, environments, and scorers. Native harness control loops are preserved; file reuse and memory retention are controlled separately.
+
+Read the [paper on arXiv](https://arxiv.org/abs/2610.20675), the [published results and experimental scope](./paper), or the [API concepts and version availability](./getting-started/python-api).
 
 ## Why AlphaDiana?
 
@@ -22,9 +21,8 @@ that over-deliberates, or vice versa. AlphaDiana exists to make that gap measura
   measurable, but the complete prompt, transport, runtime, and budget contract
   must be reported before interpreting a delta.
 - **A first-class no-harness baseline.** The `direct_llm` agent is a single-turn
-  chat with no tools and no multi-turn loop. It is the reference against which every
-  harness is measured, and it surfaces the *agent scaffold tax*: the cases where the
-  scaffold costs more than it adds.
+  chat with no tools and no multi-turn loop. It is the reference for answer-based benchmarks. Interactive tasks use
+  benchmark-native harnesses as references, as described in the [paper setup](./paper).
 - **Auditable isolation.** Supported tool-using paths can use task-scoped
   sandboxes, and every run records its realized `isolation_mode`.
   `strict_isolation` makes ROCK auto-create/predeploy failures fail closed; it
