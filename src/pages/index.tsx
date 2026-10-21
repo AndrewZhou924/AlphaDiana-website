@@ -95,7 +95,7 @@ export default function Home(): ReactNode {
             primaryButtonLink="/docs/intro"
             secondaryButtonText="GitHub"
             secondaryButtonLink={codeUrl}
-            paperButtonText="Read the Paper"
+            paperButtonText="Paper"
             paperButtonLink={paperUrl}
           />
 
