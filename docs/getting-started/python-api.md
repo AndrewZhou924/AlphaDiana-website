@@ -1,31 +1,106 @@
 ---
 sidebar_position: 4
-title: API concepts and version availability
+title: Python API and analysis
 ---
 
-# API concepts and version availability
+# Python API and analysis
 
-Figure 4 of the [AlphaDiana paper](https://arxiv.org/abs/2610.20675v1) presents a modular interface for composing evaluations and analyzing saved artifacts. The harness remains responsible for its native execution loop.
+These examples follow the [development README at `613b1368`](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/613b1368d7b4eec6ade909ed88ae88401e1a9fa2/README.md), checked on 21 October 2026. Install that repository using the [quick start](./quick-start). It exports `ad.agent`, `ad.dataset`, `ad.runner`, and `ad.analyzer`; older releases may differ.
 
-![Original paper Figure 4: AlphaDiana measurement interfaces](/img/paper/api.png)
+## Run OpenCode on three AIME tasks
 
-The figure is reproduced from the paper, including its schematic calls and illustrative measurements. It is not a copy-and-run example for every released code version.
+**OpenCode → 3 AIME tasks → scores, traces and figures.** Use the endpoint variables in the [quick start](./quick-start).
 
-## Check your code version
+The Python API lets you select the agent, dataset and scorer separately, then pass them to the runner. This example runs OpenCode inside the Podman controller built below.
 
-The public [AlphaDiana source snapshot `7e39c1e`](https://github.com/tmlr-group/AlphaDiana/tree/7e39c1eca4a30fbc27e33314cec2cbcdc51ded90), checked on 17 October 2026, provides the CLI and component classes but does **not** export the top-level `ad.agent`, `ad.dataset`, `ad.runner`, and `ad.analyzer` factories shown in the paper. Installing that snapshot does not make the figure's Python snippet executable.
+<details>
+<summary><strong>Setup required:</strong> build the OpenCode controller image with Podman</summary>
 
-For this public snapshot, follow the [CLI quick start](./quick-start) to configure and run a harness, then use `alphadiana report` or the [dashboard](../dashboard) to inspect saved results. When using a newer release, check its API documentation and exported signatures before copying a Python example.
+Run from the repository root with Podman installed:
 
-## Interface responsibilities
+```bash
+podman build \
+  -f alphadiana/harness/opencode/deploy/Containerfile.podman-controller \
+  -t localhost/alphadiana-opencode-podman:latest \
+  alphadiana/harness/opencode/deploy
+```
 
-| Paper interface | Responsibility |
-| --- | --- |
-| Dataset | Select tasks and map their inputs and scoring references to a common task representation. |
-| Agent | Configure the model and native harness; preserve its control loop and tools. |
-| Environment | Provide task execution and session state with explicit reuse boundaries. |
-| Scorer | Judge the final answer or task artifact against the benchmark contract. |
-| Runner | Allocate sessions, dispatch tasks, collect outcomes, and persist evidence. |
-| Analyzer | Compare correctness, execution status, trajectories, and resource measurements from saved artifacts. |
+The image contains OpenCode **1.3.2** and task tools. Its tag must match `controller_image` below. [Podman setup →](../benchmarks/podman)
 
-Scoring references belong to the scorer, not the model prompt. A completed run may contain wrong answers, timeouts, or other execution failures. Analysis must retain those outcomes and identify missing evidence rather than presenting every saved record as a successful execution.
+</details>
+
+```python
+import alphadiana as ad
+
+agent = ad.agent(
+    "opencode", version="1.3.2", controller_mode="podman",
+    controller_image="localhost/alphadiana-opencode-podman:latest",
+)
+data = ad.dataset("MathArena/aime_2026", benchmark="aime", max_tasks=3)
+scorer = ad.scorer.create("numeric")
+
+artifacts = ad.runner(run_id="aime_opencode_demo").compute(
+    agent=agent, data=data, scorer=scorer,
+)
+
+ad.analyzer(artifacts).export("figures/aime_opencode_demo")
+```
+
+**Results:** `results/`<br />
+**Exports:** tables + PDF/SVG/PNG.
+
+`compute()` executes and scores the tasks, then returns references to the saved artifacts. `ad.analyzer(artifacts).export(...)` reads those artifacts and generates measurement tables and figures.
+
+![AlphaDiana functional interface: agent, dataset, environment, scorer, runner, and analysis composition.](/img/paper/api.png)
+
+*The paper's functional interface connects experiment components to analysis outputs. [Figure source](https://arxiv.org/abs/2610.20675v1).*
+
+<details>
+<summary>API composition details</summary>
+
+Use the current API shown above: `ad.scorer.create(...)`, explicit harness `version=`, and `benchmark=` for dataset hub paths. OpenCode owns its Podman controller. Harnesses accepting a separate environment use `ad.environment(...)` and `ad.runner(env=...)`.
+
+[Full API guide: compose, reopen, rescore and extend →](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/613b1368d7b4eec6ade909ed88ae88401e1a9fa2/docs/getting-started/python-api.md)
+
+</details>
+
+## Analysis and outputs
+
+**Already have a saved run? Export measurements without rerunning the agent.**
+
+Default analysis reads saved scores, usage counters and available probability evidence. It computes performance, resource use and entropy where the required evidence is present.
+
+```python
+import alphadiana as ad
+
+ad.analyzer("results/quickstart_aime_directllm_t1_k1.jsonl").export(
+    "figures/quickstart_aime"
+)
+```
+
+**Outputs:** tables, figures, plotted data, source hashes and evidence coverage.
+
+Coverage records show which measurements have supporting evidence. For example, a run can report accuracy and output tokens even when logprobs are unavailable for entropy.
+
+**Need action or failure labels?** Enable the optional analysis model below to annotate saved trajectories.
+
+<details>
+<summary>Add action & failure labels: optional model calls</summary>
+
+Configure the analysis model, then enable `judge=True`:
+
+```bash
+export ANALYSIS_BASE_URL="https://your-provider.example/v1"
+export ANALYSIS_API_KEY="your-api-key"
+export ANALYSIS_MODEL="your-analysis-model-id"
+```
+
+```python
+ad.analyzer(
+    "results/quickstart_aime_directllm_t1_k1.jsonl", judge=True
+).export("figures/quickstart_aime_annotated")
+```
+
+[Measurement requirements and annotation caching →](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/613b1368d7b4eec6ade909ed88ae88401e1a9fa2/docs/getting-started/python-api.md#built-in-measurements)
+
+</details>

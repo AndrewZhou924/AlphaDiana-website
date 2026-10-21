@@ -1,11 +1,11 @@
-import { paperTitle, paperUrl } from './src/data/publication';
+import { productTagline, paperUrl, codeUrl } from './src/data/publication';
 import type * as Preset from '@docusaurus/preset-classic';
 import type { Config } from '@docusaurus/types';
 import { themes as prismThemes } from 'prism-react-renderer';
 
 const config: Config = {
   title: 'AlphaDiana',
-  tagline: paperTitle.replace('AlphaDiana: ', ''),
+  tagline: productTagline,
   favicon: 'img/TMLR.ico',
 
   future: {
@@ -70,7 +70,7 @@ const config: Config = {
       items: [
         { to: '/docs/intro', label: 'Docs', position: 'left' },
         { href: paperUrl, label: 'Paper', position: 'left' },
-        { href: 'https://github.com/tmlr-group/AlphaDiana', label: 'GitHub', position: 'right' },
+        { href: codeUrl, label: 'GitHub', position: 'right' },
       ],
     },
     footer: {

@@ -1,4 +1,4 @@
-import { paperTitle, paperUrl, paperBibtex } from '@site/src/data/publication';
+import { paperTitle, paperUrl, paperBibtex, productTagline, codeUrl } from '@site/src/data/publication';
 import Hero from '@site/src/components/Hero';
 import FeaturesGrid from '@site/src/components/FeaturesGrid';
 import InstallBox from '@site/src/components/InstallBox';
@@ -13,7 +13,6 @@ import {
   BalanceIcon,
   TargetIcon,
   TraceIcon,
-  DashboardIcon,
   ConcurrencyIcon,
 } from '@site/src/components/icons/FeatureIcons';
 import styles from './index.module.css';
@@ -55,60 +54,47 @@ const features = [
     description: 'Compare whole harnesses, then ablate tools, skills, and memory to explain the score shifts.',
   },
   {
-    icon: DashboardIcon,
+    icon: TraceIcon,
     title: 'Reproducible Reports',
-    description: 'Regenerate summaries from saved records and inspect the evaluation loop in the dashboard.',
+    description: 'Reopen saved runs and export tables, figures, source hashes, and evidence coverage.',
   },
 ];
 
-const installCommand = `git clone https://github.com/tmlr-group/AlphaDiana
-cd AlphaDiana
+const installCommand = `git clone https://github.com/AndrewZhou924/AlphaDiana-dev.git
+cd AlphaDiana-dev
+python -m venv .venv
+source .venv/bin/activate
+pip install -e '.[analysis,benchmarks,agents]'`;
 
-# Required by the security preflight in the current release
-export OPENCLAW_GATEWAY_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
+const runCommand = `export OPENAI_BASE_URL="https://your-provider.example/v1"
+export OPENAI_API_KEY="your-api-key"
+export OPENAI_MODEL_NAME="Qwen/Qwen3.5-27B"
 
-# Checkout-local conda env, dependencies, and services
-bash scripts/quickstart.sh`;
-
-const runCommand = `# Activate the environment once per terminal
-source scripts/activate.sh
-
-# Use either a local OpenAI-compatible model server:
-export OPENAI_MODEL_NAME="your-local-model"
-export OPENAI_BASE_URL="http://127.0.0.1:8000/v1"
-export OPENAI_API_KEY="sk-local"
-
-# Or a hosted API (replace the three values above):
-# export OPENAI_MODEL_NAME="your-api-model"
-# export OPENAI_BASE_URL="https://your-provider.example/v1"
-# export OPENAI_API_KEY="your-api-key"
-
-# Validate and run a one-task AIME OpenClaw smoke
-alphadiana validate configs/macro_runs/aime2026_openclaw_qwen35_27b.yaml \\
+# Validate, then run one task with one sample
+alphadiana validate configs/macro_runs/aime2026_directllm_qwen35_27b.yaml \\
   -o benchmark.config.max_tasks=1
-alphadiana run configs/macro_runs/aime2026_openclaw_qwen35_27b.yaml \\
-  -o run_id=quickstart_aime_openclaw_t1_k1 \\
+alphadiana run configs/macro_runs/aime2026_directllm_qwen35_27b.yaml \\
+  -o run_id=quickstart_aime_directllm_t1_k1 \\
   -o benchmark.config.max_tasks=1 \\
-  -o num_samples=1 \\
-  -o max_concurrent=1
+  -o num_samples=1
 
-# Generate a report from the smoke run
-alphadiana report results`;
+# Print a report from saved attempts
+alphadiana report results/`;
 
 export default function Home(): ReactNode {
   return (
     <Layout
       title="AlphaDiana"
-      description={paperTitle}>
+      description={productTagline}>
       <main>
         <div className={styles.container}>
           <Hero
             title="AlphaDiana"
-            description={paperTitle.replace('AlphaDiana: ', '')}
+            description={productTagline}
             primaryButtonText="Get Started"
             primaryButtonLink="/docs/intro"
             secondaryButtonText="GitHub"
-            secondaryButtonLink="https://github.com/tmlr-group/AlphaDiana"
+            secondaryButtonLink={codeUrl}
             paperButtonText="Read the Paper"
             paperButtonLink={paperUrl}
           />
@@ -116,11 +102,9 @@ export default function Home(): ReactNode {
           <section className={styles.introSection}>
             <div className={styles.introContent}>
               <p>
-                AlphaDiana measures complete <strong>model-harness systems</strong>: reasoning models together with
-                the control loops, tools, skills, and memory that make them agents. It links execution conditions
-                to answer correctness, behavior, and resource use, preserving native harness control loops while
-                controlling file reuse and memory retention separately. The study compares three models and three
-                harnesses on five answer-based benchmarks, with two models also tested on two interactive benchmarks.
+                Compare scores, inspect trajectories, and test tools, skills and memory.
+                AlphaDiana runs configured agents against benchmarks, scores their outputs, and saves the
+                evidence needed to analyze each attempt.
               </p>
             </div>
           </section>
@@ -164,10 +148,9 @@ export default function Home(): ReactNode {
               <p className={styles.kicker}>Measurement API</p>
               <h2>Compose tasks, agents, environments, and scoring</h2>
               <p className={styles.flowLead}>
-                The paper presents a modular interface for running evaluations and analyzing saved artifacts.
-                See <Link to="/docs/getting-started/python-api">API concepts and version availability</Link> before
-                copying the schematic calls; the <Link to="/docs/getting-started/quick-start">CLI guide</Link> covers
-                the currently published code.
+                Select the agent, dataset and scorer separately, then pass them to the runner.
+                The <Link to="/docs/getting-started/python-api">Python API example</Link> runs OpenCode on three
+                AIME tasks and exports scores, traces and figures. It includes the required Podman image setup.
               </p>
               <a href="/img/paper/api.png" aria-label="Open the original API figure at full size">
                 <img src="/img/paper/api.png" alt="Paper Figure 4: dataset, agent, scorer, runner, environment, and analyzer interfaces" loading="lazy" />
@@ -178,40 +161,17 @@ export default function Home(): ReactNode {
 
           <FeaturesGrid title="What AlphaDiana standardizes" features={features} background="white" />
 
-          <section id="dashboard" className={styles.dashboardSection}>
-            <div className={styles.dashboardContent}>
-              <p className={styles.kicker}>Dashboard</p>
-              <h2>Launch, monitor, and compare</h2>
-              <p className={styles.flowLead}>
-                AlphaDiana turns a declarative configuration into a run, exposes it in a shared result store, and lets
-                you monitor and compare evaluations side by side. The screenshots below illustrate the dashboard
-                workflow for an AIME 2026 DirectLLM evaluation with four samples per problem. See the{' '}
-                <Link to="/docs/dashboard">documentation</Link> for details.
-              </p>
-              <div className={styles.dashboardGrid}>
-                <figure className={styles.dashShot}>
-                  <img src="/img/dashboard-create.png" alt="Creating an AIME 2026 Direct LLM evaluation" loading="lazy" />
-                  <figcaption>Create an AIME 2026 Direct LLM evaluation from explicit configuration fields.</figcaption>
-                </figure>
-                <figure className={styles.dashShot}>
-                  <img src="/img/dashboard-results.png" alt="AIME 2026 Direct LLM evaluation results" loading="lazy" />
-                  <figcaption>Illustrative dashboard run; its displayed scores are separate from the paper results below.</figcaption>
-                </figure>
-              </div>
-            </div>
-          </section>
-
           <Scoreboard />
 
           <section className={styles.quickstartSection}>
             <div className={styles.quickstartContent}>
               <p className={styles.kicker}>Quick Start</p>
-              <h2>Run an AIME OpenClaw smoke evaluation</h2>
+              <h2>Run one AIME 2026 task with DirectLLM</h2>
               <p className={styles.flowLead}>
-                The command below uses <code>configs/macro_runs/aime2026_openclaw_qwen35_27b.yaml</code> with the ROCK-managed
-                OpenClaw runtime, downscaled to one problem and one sample. This is a smoke test, not the paper protocol. Connect it to a local model server or a
-                hosted API in step 2. See the{' '}
-                <Link to="/docs/getting-started/installation">getting-started guide</Link> for setup details.
+                Follow the latest README: connect a Qwen3.5-27B endpoint, validate the preset, and save one scored
+                attempt. This direct model call needs Python 3.10 or newer and no task container. The preset requires
+                streaming, logprobs, and thinking-option support. This is a smoke test, not the paper protocol.
+                See the <Link to="/docs/getting-started/quick-start">complete quick start</Link> for settings and outputs.
               </p>
               <div className={styles.installGrid}>
                 <div>
@@ -219,7 +179,7 @@ export default function Home(): ReactNode {
                   <InstallBox command={installCommand} language="bash" />
                 </div>
                 <div>
-                  <h3>2. Run</h3>
+                  <h3>2. Connect and run</h3>
                   <InstallBox command={runCommand} language="bash" />
                 </div>
               </div>
@@ -230,7 +190,14 @@ export default function Home(): ReactNode {
             <div className={styles.citationInner}>
               <p className={styles.kicker}>Citation</p>
               <p><a href={paperUrl}>{paperTitle}</a>. arXiv:2610.20675, published 14 October 2026.</p>
+              <p>If you find the project helpful, please cite:</p>
               <pre className={styles.citationBib}>{paperBibtex}</pre>
+              <p>We thank the contributors, collaborators and open-source communities behind{' '}
+                <a href="https://github.com/openclaw/openclaw">OpenClaw</a>,{' '}
+                <a href="https://github.com/alibaba/ROCK">ROCK</a> and the other tools that support AlphaDiana.</p>
+              <p>Please also check out <a href="https://alphaapollo.org/">AlphaApollo</a>, our system for deep
+                agentic reasoning (<a href="https://arxiv.org/abs/2510.06261">arXiv</a>,{' '}
+                <a href="https://github.com/tmlr-group/AlphaApollo">GitHub</a>).</p>
             </div>
           </section>
         </div>

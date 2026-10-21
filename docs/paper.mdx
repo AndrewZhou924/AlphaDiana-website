@@ -9,7 +9,7 @@ import { paperBibtex } from '@site/src/data/publication';
 
 **AlphaDiana: A Measurement System for Agents in Verifiable Reasoning Tasks** was published on arXiv on 14 October 2026.
 
-[Read the paper](https://arxiv.org/abs/2610.20675) · [PDF](https://arxiv.org/pdf/2610.20675) · [Public code](https://github.com/tmlr-group/AlphaDiana)
+[Read the paper](https://arxiv.org/abs/2610.20675) · [PDF](https://arxiv.org/pdf/2610.20675) · [Code and latest README](https://github.com/AndrewZhou924/AlphaDiana-dev)
 
 The results on this website follow **arXiv:2610.20675v1**, specifically Figure 5 and Appendices B.1, B.2, and C.5. They are published study results, not scores from the quick-start example or dashboard screenshots.
 
@@ -48,7 +48,7 @@ Values are percentages. Interactive evaluation and runtime failures count as uns
 - **Time limits:** a 9,300-second controller or request cap; OpenClaw also has a 9,000-second stream-total cap. ZeroClaw allows 100 tool iterations per run and 200 actions per hour.
 - **Default harness conditions:** native prompts and tools, without added skill libraries or instructions to use memory. Native memory remains available.
 
-The public AIME macro YAMLs checked on 17 October 2026 use one sample, temperature 0, and a 32,768-token limit. Those are runnable configuration defaults, not the AIME protocol above; use the paper settings explicitly for a reproduction.
+The latest README's DirectLLM quick-start preset, checked on 21 October 2026, uses one sample, temperature 0, and a 32,768-token limit. Those are runnable configuration defaults, not the AIME protocol above; use the paper settings explicitly for a reproduction.
 
 These limits do not equalize total computation: a harness can make several model calls. The paper's settings are an experimental protocol, not a claim about the defaults of every downloadable configuration.
 
