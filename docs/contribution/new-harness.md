@@ -6,10 +6,10 @@ sidebar_position: 2
 
 A harness in AlphaDiana is an **Agent**: a class that turns a benchmark task into
 an answer (and a trajectory of how it got there). The baseline
-[`direct_llm`](../harnesses/direct-llm) is a single chat call; the agentic
-harnesses [`opencode`](../harnesses/opencode),
-[`openclaw`](../harnesses/openclaw), and [`zeroclaw`](../harnesses/zeroclaw)
-drive an external CLI inside a sandbox. They all implement the same small
+[`direct_llm`](/docs/harnesses/direct-llm) is a single chat call; the agentic
+harnesses [`opencode`](/docs/harnesses/opencode),
+[`openclaw`](/docs/harnesses/openclaw), and [`zeroclaw`](/docs/harnesses/zeroclaw)
+drive an external CLI or gateway through their configured runtime. They all implement the same small
 interface, so adding a new one is a matter of subclassing `Agent`, returning an
 `AgentResponse`, and registering the class.
 
@@ -87,7 +87,7 @@ The dataclass also carries extended observability fields absorbed from `codex-de
 `gateway_log_excerpt`, `workspace_snapshot_paths`, `workspace_file_contents`,
 `sandbox_metadata`, `system_prompt`, and `finish_reason`. Populate whatever your
 harness can produce; they make a run auditable, and scorer-specific fields can
-affect scoring. Benchmark-specific adapters may consume artifact and runtime metadata.
+affect scoring.
 Set `answer = None` and record a reason in `metadata` (for example
 `failure_reason`) when a run cannot produce a gradable answer.
 
@@ -103,24 +103,26 @@ classmethod-only singleton over a class-level `_registry: dict[str, Type[Agent]]
 | `AgentRegistry.list()` | Sorted list of registered names. |
 
 Register **at the bottom of your agent module** so the call fires on import. A
-`register_agent(name)` decorator exists, but the shipped agents register
-directly in their implementation modules:
+`register_agent(name)` is also available. Core reasoning harnesses commonly
+register directly; native executors such as SWE-Agent use the decorator.
+A direct registration looks like this:
 
 ```python
 # Example module: alphadiana/harness/<your_agent>/agent.py
 AgentRegistry.register("myagent", MyAgent)
 ```
 
-## 4. Wire the import into the Runner
+## 4. Add the built-in registration import
 
 Registration is **import-triggered, not auto-discovered**. The module-level
-`register()` call only runs if the module is imported, and the engine imports
-each agent module explicitly in `Runner.setup()` in
-`alphadiana/engine/runner.py`. Add your module to that list:
+`register()` call runs when the module is imported.
+`load_builtin_agents()` in `alphadiana/engine/components.py` imports each
+built-in agent module. Runner setup calls this loader through
+`register_builtin_components()`. Add your module to that list:
 
 ```python
-# alphadiana/engine/runner.py, in Runner.setup()
-import alphadiana.harness.direct_llm        # noqa: F401
+# alphadiana/engine/components.py, in load_builtin_agents()
+import alphadiana.harness.direct_llm.agent        # noqa: F401
 import alphadiana.harness.openclaw.agent    # noqa: F401
 import alphadiana.harness.opencode.agent    # noqa: F401
 import alphadiana.harness.zeroclaw.agent    # noqa: F401
@@ -140,6 +142,7 @@ Once registered and imported, a config selects the agent by its `name`:
 ```yaml
 agent:
   name: myagent
+  version: "1.0"
   config:
     model: Qwen/Qwen3.5-27B
     api_base: http://127.0.0.1:8011/v1
@@ -157,8 +160,8 @@ python -m alphadiana.cli run <config.yaml>
 
 If your harness should expose AlphaDiana skill bundles to the model, read the
 `agent.config.skill_folder` key in `setup()` and mount the bundle into the
-sandbox. The existing agents resolve it with a per-harness `_resolve_skill_folder`:
-empty disables it; an absolute
+sandbox. Use `alphadiana.harness.base.resolve_runtime_skill_folder` to resolve it.
+An empty value disables it; an absolute
 path is used as-is; a value with `/` resolves against the cwd; a bare name
 resolves to `alphadiana/harness/skills/<name>/` (for example `advanced-maths`).
 Skills are **not** auto-injected into context, so your system prompt must instruct

@@ -29,7 +29,7 @@ Runner.run()
 task JSON + JSONL + artifacts -> RunSummary + report.md
 ```
 
-Source references in these pages use file paths and symbols rather than mutable source line numbers. The central implementation is `alphadiana/engine/runner.py` (`Runner.setup`, `Runner.run`, and `_run_decodingtrust_process_shards`).
+Source references in these pages use file paths and symbols rather than mutable source line numbers. The central implementation is `alphadiana/engine/runner.py` (`Runner.setup` and `Runner.run`).
 
 ## Configuration boundary
 
@@ -37,23 +37,15 @@ Source references in these pages use file paths and symbols rather than mutable 
 
 - component blocks: `agent`, `benchmark`, `scorer`, and optional `sandbox`;
 - execution controls: `max_concurrent`, `num_samples`, retries, `redo_all`, and isolation settings;
-- DecodingTrust process isolation controls: `parallel_strategy` and `process_shards`;
 - output and reporting controls: `output_dir`, `strict_report`, and metadata.
 
 `num_samples` is a per-run choice. The engine does not impose an AIME-specific sample count; pass@k experiments must set the intended value in their own config.
 
 ## Dispatch and isolation
 
-The normal dispatcher supports bounded in-process concurrency. Sandboxes may provide a fresh session per task, a pooled session, or a benchmark-specific task-bound session. `swebench_container` and `decodingtrust` both require the current task when creating a session.
+The normal dispatcher supports bounded in-process concurrency. Sandboxes may provide a fresh session per task, a pooled session, or a benchmark-specific task-bound session. `swebench_container` requires the current task when creating a session.
 
-DecodingTrust is a special cross-cutting path:
-
-- `sandbox.name: decodingtrust` disables pooling and shared sessions;
-- in-process task concurrency is lowered to one because DTAP uses process-wide state;
-- `parallel_strategy: process_shards` with `process_shards > 1` launches isolated child processes, assigns tasks round-robin, gives each shard separate ports and identifiers, and merges the shard result stores into the parent run;
-- OpenClaw selects its DTAP-native path with `agent.config.runtime_backend: decodingtrust_openclaw_cli`.
-
-See [Sandboxes & Isolation](./sandboxes) for backend-specific boundaries.
+See [Sandboxes & Isolation](/docs/architecture/sandboxes) for backend-specific boundaries.
 
 ## Checkpoint semantics
 
@@ -67,19 +59,20 @@ Provider failures, context overflow, control-plane failures, verifier anomalies,
 
 `ResultStore` persists one sample per task JSON file entry and one JSONL record per `(task_id, sample_index)`. Result records include the response, score, status, trajectories, metadata, and references to larger artifacts. Reports compute accuracy, mean score, Pass@k, Avg@k, completion/error counts, and per-category variants.
 
-DecodingTrust reports also expose denominator-scoped task-success and attack-success counts and rates. See [Scoring & Results](./scoring-and-results).
+Shared registry mechanics and deferred built-in imports live in `alphadiana/engine/components.py`. Low-level logprob conversion and entropy math live in `alphadiana/results/logprobs.py`. `results/statistics.py` owns latest-sample selection, reliability, and common run statistics; `analysis/export.py` projects those statistics into run reports and exports figures. Action-space reports live in `analysis/actions/action_space_report.py`. Public `ad.*` entry points remain; old internal module paths migrate according to the [import map](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/9dd7a7eb9485b49c1d452116cc06f9fee8111b3a/alphadiana/analysis/README.md).
+
+For module ownership, see the [analysis map](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/9dd7a7eb9485b49c1d452116cc06f9fee8111b3a/alphadiana/analysis/README.md). The [operator workflow map](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/9dd7a7eb9485b49c1d452116cc06f9fee8111b3a/scripts/README.md) separates setup, validation, human action audits, and paper reproduction. Dashboard code lives under `alphadiana/dashboard/`.
 
 ## Terminology
 
 - **Dashboard UI**: the React analysis application.
 - **live status file**: `status/dashboard.txt` written during a run.
-- **homepage Dashboard section**: the website landing-page section.
 - **Observability & Proxies**: this documentation area, not a dashboard.
 
 ## Next steps
 
-- [Engine & Runner](./engine-and-runner) — lifecycle, concurrency, checkpointing, and process sharding.
-- [Registries](./registries) — the complete live component inventory.
-- [Sandboxes & Isolation](./sandboxes) — session contracts and backend boundaries.
-- [Scoring & Results](./scoring-and-results) — validity, storage, metrics, and sharing precautions.
-- [Observability & Proxies](./observability) — proxy capture and trajectory preservation.
+- [Engine & Runner](/docs/architecture/engine-and-runner) — lifecycle, concurrency, and checkpointing.
+- [Registries](/docs/architecture/registries) — the complete live component inventory.
+- [Sandboxes & Isolation](/docs/architecture/sandboxes) — session contracts and backend boundaries.
+- [Scoring & Results](/docs/architecture/scoring-and-results) — validity, storage, metrics, and sharing precautions.
+- [Observability & Proxies](/docs/architecture/observability) — proxy capture and trajectory preservation.

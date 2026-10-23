@@ -38,7 +38,7 @@ metadata: {}                   # free-form tags
 ```
 
 `sandbox: null` is used for `direct_llm` and for OpenCode controller modes that
-self-manage their runtime. The generic ZeroClaw harness requires a live sandbox.
+self-manage their runtime. ZeroClaw requires a live sandbox or its configured Podman runtime.
 
 ## Top-level fields
 
@@ -53,7 +53,7 @@ These map one-to-one onto `ExperimentConfig` in
 | `agent.config` | dict | `{}` | Open pass-through to the harness (see below). |
 | `benchmark.name` | string | required | e.g. `aime`, `gpqa_diamond`, `hle`, `mmmu_pro`, `terminal_bench2`, `swe_bench`. |
 | `benchmark.config` | dict | `{}` | `split`, `year`, `subset`, `data_path`, etc. |
-| `sandbox` | null \| object | `null` | `{ name, config }`; name in `local` / `rock` / `podman` / `swebench_container` / `decodingtrust`. |
+| `sandbox` | null \| object | `null` | `{ name, config }`; name in `local` / `rock` / `podman` / `swebench_container`. |
 | `scorer.name` | string | required | Registered values are listed in the scorer table below. |
 | `scorer.config` | dict | `{}` | Scorer-specific params. |
 | `max_concurrent` | int | `1` | Parallel task executions; validator requires `1 <= n <= 64`. |
@@ -65,15 +65,13 @@ These map one-to-one onto `ExperimentConfig` in
 | `sandbox_retries` | int | `1` | Sandbox startup retries. |
 | `strict_report` | bool | `false` | Exit non-zero when the report finds missing samples, invalid scored rows, or error records. |
 | `strict_isolation` | bool | `false` | For ROCK auto-create/predeploy paths, turn setup failures into hard errors instead of shared-gateway fallback. |
-| `parallel_strategy` | string | `""` | Set to `process_shards` for DecodingTrust multi-process isolation. |
-| `process_shards` | int | `1` | Number of isolated DecodingTrust child processes; validator requires `>= 1`. |
 | `metadata` | dict | `{}` | Free-form tags (`author`, `gpu`, `notes`, ...). |
 
-:::tip Sample counts are protocol choices
-`num_samples` is a top-level run setting, not a benchmark-loader setting. The
-validator accepts any positive value for GPQA or AIME. Record the chosen value
-and keep it fixed across cells being compared.
-:::
+> [!TIP] **Sample counts are protocol choices**
+> `num_samples` is a top-level run setting, not a benchmark-loader setting. The
+> validator accepts any positive value for GPQA or AIME. Record the chosen value
+> and keep it fixed across cells being compared.
+
 
 ## The four blocks
 
@@ -95,19 +93,23 @@ harness-specific defaults:
 | `enable_thinking` | `None` | Reasoning toggle (see note below). |
 | `capture_logprobs` | harness-specific | DirectLLM defaults to `true`; other transports require explicit support/configuration. |
 | `system_prompt` | harness | Optional system-prompt text. |
+| `memory_scope` | unset | Optional explicit scope: `intra_task`, `cross_sample`, or `cross_task`. Stateful scopes force sequential dispatch. |
+| `persistent_memory` | `false` | Must be false for `intra_task` and true for `cross_sample`/`cross_task` when `memory_scope` is explicit. |
+| `memory_enabled` | harness-specific | Enable the harness-native memory execution path independently of cross-work-item persistence. |
+| `strict_memory` | `false` | When true, missing native memory evidence fails the work item instead of silently falling back. |
 | `bridge_port` | `8080` | ZeroClaw Podman bridge listener, container exposure, health-probe, and published API port. |
 
-Harness-specific keys (e.g. `controller_mode`, `tools_profile`, `persistent_memory`,
+Harness-specific keys (e.g. `controller_mode`, `tools_profile`,
 `system_prompt_override`, and the nested `env{}` for `swebench_docker` modes) are documented
-per-harness. See [`zeroclaw`](../harnesses/zeroclaw), [`opencode`](../harnesses/opencode),
-and [`openclaw`](../harnesses/openclaw).
+per-harness. See [`zeroclaw`](/docs/harnesses/zeroclaw), [`opencode`](/docs/harnesses/opencode),
+and [`openclaw`](/docs/harnesses/openclaw).
 
-:::caution Reasoning is the experimental variable
-There is no single canonical reasoning field. `direct_llm` reads `enable_thinking` and
-`extra_body`; reasoning text is parsed back out of provider responses. Never CLI-override
-reasoning controls (or `max_tokens`) on contract runs to "speed up" an experiment, and never
-inject reasoning flags into the proxy plumbing.
-:::
+> [!CAUTION] **Reasoning is the experimental variable**
+> There is no single canonical reasoning field. `direct_llm` reads `enable_thinking` and
+> `extra_body`; reasoning text is parsed back out of provider responses. Never CLI-override
+> reasoning controls (or `max_tokens`) on contract runs to "speed up" an experiment, and never
+> inject reasoning flags into the proxy plumbing.
+
 
 ### benchmark.config
 
@@ -117,8 +119,7 @@ you may also see pinned `dataset_index` / `max_tasks`.
 ### sandbox
 
 Set to `null` when the harness manages its own runtime. When present, `sandbox.name`
-selects the backend (`local`, `rock`, `podman`, `swebench_container`,
-`decodingtrust`) and `sandbox.config`
+selects the backend (`local`, `rock`, `podman`, `swebench_container`) and `sandbox.config`
 carries backend params (ROCK `admin_base_url` / `proxy_base_url` / `image` / `memory` /
 `cpus`; Podman `ports` / `network` / `name_prefix`; etc.). A ROCK preflight runs only for
 ROCK-backed runs.
@@ -131,11 +132,9 @@ ROCK-backed runs.
 | `numeric` | Numeric answers | Tolerance default `1e-6`. |
 | `exact_match` | Exact string answers | Math-aware normalization + strict equality; does not equate `1/2` and `0.5`. |
 | `llm_judge` | Open-ended (e.g. HLE) | Needs `api_base` / `api_key` / `judge_model`. |
-| `swebench_pro` | SWE-bench Pro | Requires `eval_script_path` and `scripts_dir`. |
 | `swe_bench` | SWE-bench Verified | Runs the official SWE-bench evaluator against the submitted patch. |
 | `terminal_bench2` | Terminal-Bench 2 | Converts the task-container verifier reward to a binary score. |
 | `imo_verify` | IMO-AnswerBench | Repo-local conservative math-answer verifier; required for this benchmark. |
-| `decodingtrust` | DecodingTrust | Runs the DTAP judge and records utility/security metadata. |
 
 ## Environment-variable interpolation
 
@@ -159,15 +158,21 @@ agent:
 
 When an agent field is left blank, `_apply_agent_env_defaults()` in
 `alphadiana/engine/config/experiment_config.py` fills it from the environment.
-This is why example configs leave `model` / `api_base` /
+This is why release configs may leave `model` / `api_base` /
 `api_key` empty and rely on `.env` loaded via `source scripts/activate.sh`.
 
 | Agent field | Env var | Applies to |
 |---|---|---|
-| `api_base` | `OPENAI_BASE_URL` | direct_llm, openclaw, zeroclaw, opencode, terminal_bench2_* |
-| `api_key` | `OPENAI_API_KEY` | same |
+| `api_base` | `OPENAI_BASE_URL` | direct_llm, zeroclaw, opencode, terminal_bench2_*, and direct-gateway openclaw |
+| `api_key` | `OPENAI_API_KEY` | direct_llm, openclaw, zeroclaw, opencode, terminal_bench2_* |
 | `model` | `OPENAI_MODEL_NAME` | direct_llm, openclaw, zeroclaw, tb2_docker, tb2_zeroclaw |
 | `model_name` | `OPENAI_MODEL_NAME` | opencode, tb2 variants |
+
+For runtime-backed OpenClaw configs (`runtime`, `runtime_backend: podman`, or a
+ROCK/OpenClaw config-path pair), `OPENAI_BASE_URL` is the model-provider
+endpoint inside the sandbox. It does not fill lower-case `api_base`; the runner
+first deploys the OpenClaw gateway and then supplies that gateway address to the
+harness.
 
 ```bash
 export OPENAI_BASE_URL=http://127.0.0.1:8000/v1
@@ -175,11 +180,11 @@ export OPENAI_API_KEY=sk-EMPTY
 export OPENAI_MODEL_NAME=Qwen/Qwen3.5-27B
 ```
 
-:::note The `EMPTY` sentinel
-`ConfigValidator._has_nonempty_value()` treats `None`, `""`, `EMPTY` (case-insensitive),
-and a lone `$VAR` / `${VAR}` placeholder as **not populated**. For local vLLM,
-use `api_key: "sk-EMPTY"` or another non-empty placeholder.
-:::
+> [!NOTE] **The `EMPTY` sentinel**
+> `ConfigValidator._has_nonempty_value()` treats `None`, `""`, `EMPTY` (case-insensitive),
+> and a lone `$VAR` / `${VAR}` placeholder as **not populated**. For local vLLM,
+> use `api_key: "sk-EMPTY"` or another non-empty placeholder.
+
 
 ## CLI overrides
 
@@ -205,7 +210,7 @@ configs use descriptive kebab/underscore ids encoding `{date?}-{benchmark}-{harn
 ```
 20260423-gpqa_diamond-directllm-qwen35_27b-v01
 exp2-zw-aime-memory-passk
-micro_aime2026_opencode_kimi_k26_memory_cross_sample
+micro_aime2026_opencode_qwen35_27b_memory_cross_sample
 ```
 
 Downscaled or variant runs must use a distinct `run_id` suffix rather than CLI-overriding
@@ -230,8 +235,9 @@ python -m alphadiana.cli run config.yaml -o run_id=my_test -o output_dir=/tmp/ru
 
 Re-invoking the same config **resumes**: `run` loads the existing `<run_id>` records and
 skips already-completed tasks (or samples, when `num_samples > 1`) unless `--redo-all` is
-given. The result store lives under `output_dir/<run_id>/`
-(see `alphadiana/analysis/io/result_store.py`).
+given. The checkpoint source of truth is `output_dir/<run_id>.jsonl`; the
+manifest, task JSON, lifecycle events, and artifacts live under
+`output_dir/<run_id>/` (see `alphadiana/results/store.py`).
 
 ## Editing configs
 
