@@ -4,96 +4,91 @@ sidebar_position: 2
 
 # Installation
 
-This page covers installing AlphaDiana, optionally bringing up the ROCK
-services that the sandboxed harnesses depend on, and setting the model-provider
-environment variables that every run reads.
+:::note Version used by these examples
 
-For the first end-to-end evaluation, continue to [Quickstart](./quick-start).
-For per-harness configuration, see the harness pages such as
-[direct_llm](../harnesses/direct-llm), [openclaw](../harnesses/openclaw),
-[opencode](../harnesses/opencode), and [zeroclaw](../harnesses/zeroclaw).
+These instructions follow the finalized development README at [`9dd7a7eb`](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/9dd7a7eb9485b49c1d452116cc06f9fee8111b3a/README.md). As checked on 23 October 2026, the public repository has not yet received the API factories and example YAML used here. Use the development checkout below; access to that repository is required.
 
-## Prerequisites
-
-| Requirement | Notes |
-|---|---|
-| OS | Linux |
-| Python | >= 3.10, 3.11/3.12 recommended. Do **not** use 3.13 — ROCK depends on a library that supports only `<= 3.12`. |
-| Conda | Used to create an isolated, checkout-local environment. |
-| NVIDIA GPU | One card with 40GB+ VRAM (A100/A800) to serve a local model via vLLM. Not required when targeting a hosted API. |
-| Docker | Required for the ROCK-backed harnesses (`openclaw`, `zeroclaw`). The current user must be in the `docker` group. |
-| Model access | Either a local vLLM endpoint or an API key for a provider such as OpenRouter. |
-
-A GPU is only needed if you serve the model yourself. `direct_llm` and the
-agent harnesses can all point at a remote OpenAI-compatible endpoint instead.
-
-## Install
-
-Clone the repository and create the environment. The service bootstrap creates
-a checkout-derived conda env (for example `alphadiana-9809e32f`) so that
-multiple checkouts on the same host do not collide.
-
-:::warning Current bootstrap prerequisite
-`scripts/quickstart.sh` runs `scripts/security_guard.py --check` before the
-setup helper gets a chance to generate an OpenClaw gateway token. In a fresh
-shell you must export a strong token first. Do not use
-`SECURITY_GUARD_BYPASS=1` for normal setup.
 :::
 
-```bash
-git clone https://github.com/tmlr-group/AlphaDiana
-cd AlphaDiana
 
-# Required before quickstart's security preflight in the current release.
+AlphaDiana provides two ways to run experiments: the **CLI** and the **Python API**.
+Both examples below run **OpenCode on 3 AIME 2026 tasks**, with one sample per task, then analyze the saved results.
+
+**Requires:** uv, Python ≥ 3.10, Podman, and an OpenAI-compatible model endpoint.
+
+Complete steps 1–3, then choose the [CLI](/docs/getting-started/quick-start#cli) or [Python API](/docs/getting-started/quick-start#python-api) workflow.
+
+### 1. Install
+
+Create an isolated Python environment and install the execution and analysis dependencies:
+
+```bash
+git clone https://github.com/AndrewZhou924/AlphaDiana-dev.git
+cd AlphaDiana-dev
+git checkout 9dd7a7eb9485b49c1d452116cc06f9fee8111b3a
+uv venv --python 3.10 .venv
+source .venv/bin/activate
+uv pip install -e '.[analysis,benchmarks,agents]'
+```
+
+### 2. Set up the model endpoint
+
+Replace the URL and key with your provider's values. The model name must match an ID served by that endpoint.
+
+```bash
+export OPENAI_BASE_URL="https://your-provider.example/v1"
+export OPENAI_API_KEY="your-api-key"
+export OPENAI_MODEL_NAME="Qwen/Qwen3.5-27B"
+```
+
+### 3. Build the OpenCode controller image
+
+Run from the repository root with Podman installed:
+
+```bash
+podman build \
+  -f alphadiana/harness/opencode/deploy/Containerfile.podman-controller \
+  -t localhost/alphadiana-opencode-podman:latest \
+  alphadiana/harness/opencode/deploy
+```
+
+The image contains OpenCode **1.3.2** and task tools. Both examples use this image to run OpenCode. [Podman setup →](/docs/benchmarks/podman)
+
+
+## Next steps
+
+Choose the [CLI or Python API workflow](/docs/getting-started/quick-start#cli). For other runtimes, consult the [harness guides](/docs/harnesses/) and [sandbox requirements](/docs/architecture/sandboxes). A hosted endpoint does not require a local GPU. The [DirectLLM baseline](/docs/getting-started/direct-llm-baseline) does not require a task container.
+
+## Optional ROCK service installation
+
+ROCK-backed runs require Linux, Docker, Conda, and checkout-owned ROCK services.
+Use Python 3.10–3.12 for this stack; its dependencies do not support Python 3.13.
+The service bootstrap creates a checkout-derived Conda environment so multiple
+checkouts can coexist:
+
+```bash
+# Required by quickstart's security preflight before token generation.
 export OPENCLAW_GATEWAY_TOKEN="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
-
-# Checkout-local conda env + dependencies + Redis/Ray/ROCK services.
-bash scripts/quickstart.sh
-```
-
-The preflight also rejects public Redis/ROCK bindings and other HIGH/CRITICAL
-findings. If it stops, fix the reported issue and rerun the same command.
-
-If you only want the package and its dependencies in a plain shared `alphadiana`
-env (no ROCK service bring-up), use the standalone installer instead:
-
-```bash
-bash installation.sh
-```
-
-`installation.sh` honours `ALPHADIANA_ENV` (default `alphadiana`) and
-`ALPHADIANA_PYTHON` (default `3.12`), creates the conda env if missing, then runs
-`pip install -e .` plus the core runtime dependencies. On shared hosts prefer
-`scripts/quickstart.sh`, which derives an isolated per-checkout env name.
-
-### Activate the environment
-
-If you installed with `scripts/quickstart.sh`, run this **once per terminal**.
-It activates the checkout-derived environment, cleans proxy variables, loads
-ROCK ports, and sources `.env`:
-
-```bash
+bash scripts/setup/quickstart.sh
 source scripts/activate.sh
 ```
 
-If you used the standalone `installation.sh`, it created the shared environment
-named by `ALPHADIANA_ENV` (default `alphadiana`) but did not create
-`scripts/.alphadiana_env`. Activate that environment directly instead:
+The preflight rejects public Redis/ROCK bindings and HIGH/CRITICAL findings.
+Fix reported issues before rerunning. The activation script selects the
+checkout-derived environment, loads ROCK ports, and sources `.env`.
+
+The alternative `bash installation.sh` creates a Conda environment named by
+`ALPHADIANA_ENV` (default `alphadiana`) with Python selected by
+`ALPHADIANA_PYTHON` (default `3.12`), without starting ROCK services. Activate
+that environment directly:
 
 ```bash
 source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate "${ALPHADIANA_ENV:-alphadiana}"
-
-# Load an optional local env file; otherwise export provider variables next.
-if [ -f .env ]; then
-  set -a
-  source .env
-  set +a
-fi
 ```
 
-Do not rely on `source scripts/activate.sh` to discover a standalone custom env;
-without quickstart's local state file it derives a checkout-specific name.
+This standalone route does not write quickstart's `scripts/.alphadiana_env`.
+For the plain virtual environment above, use `source .venv/bin/activate`.
 
 ### Serve a model with vLLM (optional)
 
@@ -104,7 +99,7 @@ server works.
 pip install vllm
 
 CUDA_VISIBLE_DEVICES=0 python -m vllm.entrypoints.openai.api_server \
-    --model /path/to/Qwen3-8B \
+    --model /path/to/Qwen3.5-27B \
     --host 127.0.0.1 \
     --port 8000 \
     --trust-remote-code
@@ -114,17 +109,17 @@ Harnesses that use tool calling (`openclaw`, and the SWE / terminal-bench
 agents) need the server started with `--enable-auto-tool-choice
 --tool-call-parser <parser>`, where `<parser>` matches the model (for example
 `qwen3_coder` for Qwen3.5, `hermes` for Qwen3). `direct_llm` does not require it.
-See [openclaw](../harnesses/openclaw) for details.
+See [openclaw](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/9dd7a7eb9485b49c1d452116cc06f9fee8111b3a/docs/harnesses/openclaw.md) for details.
 
-## ROCK bring-up (optional, for openclaw / zeroclaw)
+## ROCK bring-up (for ROCK-backed configs)
 
 `direct_llm` and host/Docker-controller OpenCode paths do **not** need ROCK.
 Generic ZeroClaw still requires a live sandbox/container session. The ROCK preflight only fires
 for ROCK-backed runs (`sandbox.name == 'rock'` or a gateway-autodeploy agent),
 checking admin/proxy/Redis reachability and port ownership in
-`alphadiana/cli.py`; non-ROCK runs skip it.
+`alphadiana/cli/commands.py`; non-ROCK runs skip it.
 
-`scripts/quickstart.sh` brings these services up for you. For an already
+`scripts/setup/quickstart.sh` brings these services up for you. For an already
 installed checkout, the supported harness launchers are safer than assembling
 the stack by hand: they allocate checkout-specific ports, bind Redis and ROCK
 to loopback, start or reuse the intended Ray cluster, and inject that cluster's
@@ -133,20 +128,19 @@ GCS address into a runtime ROCK config.
 ```bash
 source scripts/activate.sh
 export OPENCLAW_GATEWAY_TOKEN="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+export OPENAI_BASE_URL=https://provider.example/v1
+export OPENAI_API_KEY=<provider-key>
+export OPENAI_MODEL_NAME=<provider-model>
 
-# OpenClaw ROCK stack and one gateway sandbox. Provider flags avoid confusing
-# the upstream provider URL with agent.config.api_base.
-bash scripts/start_openclaw.sh \
-  --model-base-url https://provider.example/v1 \
-  --model-api-key <provider-key> \
-  --model-name <provider-model>
+# OpenClaw ROCK control plane. The runner creates gateway sandboxes.
+bash scripts/setup/start_openclaw.sh
 
 # Or, for a ZeroClaw ROCK stack:
-# OPENAI_BASE_URL=https://provider.example/v1 \
-# OPENAI_API_KEY=<provider-key> \
-# OPENAI_MODEL_NAME=<provider-model> \
-# bash scripts/start_zeroclaw.sh
+# bash scripts/setup/start_zeroclaw.sh
 ```
+
+Both launchers read provider settings from the environment and accept no model
+flags. Passing deployment options to `start_openclaw.sh` exits with status 2.
 
 The generated allocation includes checkout-specific values such as:
 
@@ -161,7 +155,7 @@ For debugging the low-level sequence, first generate and load the same
 checkout-local names and ports used by the launchers:
 
 ```bash
-python scripts/find_rock_ports.py --write-env scripts/.rock_ports.env
+python scripts/setup/find_rock_ports.py --write-env scripts/.rock_ports.env
 source scripts/rock_env.sh
 
 docker start "$ROCK_REDIS_CONTAINER" 2>/dev/null || \
@@ -179,7 +173,7 @@ and path hash.
 Ray must be started on `$ROCK_RAY_PORT` before admin/proxy. More importantly,
 the config passed to admin and proxy must contain
 `ray.address: "$ROCK_BIND_HOST:$ROCK_RAY_PORT"`. The checked-in launchers create
-that runtime config before invoking `scripts/run_rock_admin_local.py`; the base
+that runtime config before invoking `scripts/setup/run_rock_admin_local.py`; the base
 file generated by `find_rock_ports.py` is not sufficient by itself. Use those
 launchers unless you are debugging the service bootstrap itself.
 
@@ -204,7 +198,7 @@ this checkout. If a foreign worktree owns them, regenerate ports with
 the current user:
 
 ```bash
-bash scripts/cleanup_rock_ports.sh
+bash scripts/setup/cleanup_rock_ports.sh
 ```
 
 ## Provider endpoints and agent gateways
@@ -223,7 +217,7 @@ blank provider fields are populated from these environment variables:
 |---|---|---|
 | `OPENAI_BASE_URL` | `api_base` | `http://127.0.0.1:8000/v1` |
 | `OPENAI_API_KEY` | `api_key` | `sk-EMPTY` (local vLLM) |
-| `OPENAI_MODEL_NAME` | `model` (`model_name` for opencode / tb2 variants) | `Qwen/Qwen3-8B` |
+| `OPENAI_MODEL_NAME` | `model` (`model_name` for opencode / tb2 variants) | `Qwen/Qwen3.5-27B` |
 
 Set them in your shell, or put them in a `.env` file that `scripts/activate.sh`
 loads:
@@ -231,43 +225,38 @@ loads:
 ```bash
 export OPENAI_BASE_URL=http://127.0.0.1:8000/v1
 export OPENAI_API_KEY=sk-EMPTY
-export OPENAI_MODEL_NAME=Qwen/Qwen3-8B
+export OPENAI_MODEL_NAME=Qwen/Qwen3.5-27B
 ```
 
-:::warning OpenClaw auto-deploy boundary
-The current config loader also fills blank OpenClaw `api_base` from
-`OPENAI_BASE_URL`. The runner then interprets that value as an already-running
-OpenClaw gateway and can skip ROCK/Podman gateway startup. Until those fields
-are separated in code, do not export `OPENAI_BASE_URL` for an OpenClaw
-auto-deploy run.
+> [!NOTE] **OpenClaw auto-deploy boundary**
+> For a runtime-backed OpenClaw config (`runtime`, `runtime_backend: podman`, or
+> a `rock_agent_config_path` / `openclaw_config_path` pair), the loader treats
+> `OPENAI_BASE_URL` as the upstream provider endpoint and deliberately leaves
+> lower-case `agent.config.api_base` empty so the runner creates the gateway.
+> You can therefore use the normal provider variables:
+>
+> ```bash
+> export OPENAI_BASE_URL=https://openrouter.ai/api/v1
+> export OPENAI_API_KEY=<provider-key>
+> export OPENAI_MODEL_NAME=<provider-model>
+>
+> python -m alphadiana.cli run configs/macro_runs/aime2026_openclaw_qwen35_27b.yaml \
+>   -o run_id=endpoint_demo_openclaw_aime_t1_k1 \
+>   -o benchmark.config.max_tasks=1 -o num_samples=1
+> ```
+>
+> Set `agent.config.api_base` only when you intentionally want to connect to an
+> already deployed OpenClaw gateway; pair it with `gateway_token`, not the
+> provider API key.
 
-Instead, use a differently named shell variable and pass it to OpenClaw's
-provider-specific config key:
 
-```bash
-export PROVIDER_BASE_URL=https://openrouter.ai/api/v1
-export OPENAI_API_KEY=<provider-key>
-export OPENAI_MODEL_NAME=<provider-model>
-unset OPENAI_BASE_URL
+> [!NOTE] **Use `sk-EMPTY`, not literal `EMPTY`, for local vLLM**
+> The config validator (`alphadiana/engine/config/validator.py`,
+> `ConfigValidator`) treats `None`, the empty string, the case-insensitive literal
+> `EMPTY`, and a string that is wholly an unresolved `${VAR}` placeholder as
+> **missing**. A local vLLM server ignores the key value, so use any non-`EMPTY`
+> string such as `sk-EMPTY` or `EMPTY-key`. Literal `EMPTY` fails validation.
 
-python -m alphadiana.cli run configs/examples/openclaw_aime2024.yaml \
-  -o run_id=endpoint_demo_openclaw_aime_t1_k1 \
-  -o benchmark.config.max_tasks=1 -o num_samples=1 \
-  -o agent.config.OPENAI_BASE_URL="$PROVIDER_BASE_URL"
-```
-
-Set `agent.config.api_base` only when you intentionally want to connect to an
-already deployed OpenClaw gateway; pair it with `gateway_token`, not the
-provider API key.
-:::
-
-:::note Use `sk-EMPTY`, not literal `EMPTY`, for local vLLM
-The config validator (`alphadiana/engine/config/validator.py`,
-`ConfigValidator`) treats `None`, the empty string, the case-insensitive literal
-`EMPTY`, and a string that is wholly an unresolved `${VAR}` placeholder as
-**missing**. A local vLLM server ignores the key value, so use any non-`EMPTY`
-string such as `sk-EMPTY` or `EMPTY-key`. Literal `EMPTY` fails validation.
-:::
 
 Config values may also reference these variables directly, for example
 `${OPENAI_BASE_URL}` or `${SANDBOX_ID}`. They are expanded from the shell during
@@ -279,8 +268,8 @@ leaking the literal `${VAR}` text.
 Run a config validation and a quick evaluation:
 
 ```bash
-alphadiana validate configs/examples/direct_llm.yaml
-alphadiana run configs/examples/direct_llm.yaml \
+alphadiana validate configs/macro_runs/aime2026_directllm_qwen35_27b.yaml
+alphadiana run configs/macro_runs/aime2026_directllm_qwen35_27b.yaml \
   -o run_id=install_check_aime_directllm_t1_k1 \
   -o benchmark.config.max_tasks=1 \
   -o num_samples=1
@@ -289,7 +278,7 @@ alphadiana run configs/examples/direct_llm.yaml \
 `validate` prints `Config is valid.` on success and exits non-zero with
 `  - <error>` lines otherwise. A completed run writes scored records under
 `output_dir` (default `./results`); results are persisted through the result
-store at `alphadiana/analysis/io/result_store.py`. Regenerate a markdown report
+store at `alphadiana/results/store.py`. Regenerate a markdown report
 from existing run files with:
 
 ```bash
@@ -300,17 +289,9 @@ alphadiana report results/
 
 | Component | Path |
 |---|---|
-| CLI entry point | `alphadiana/cli.py` (console script `alphadiana`; module form `python -m alphadiana.cli`) |
+| CLI entry point | `alphadiana/cli/commands.py` (console script `alphadiana`; module form `python -m alphadiana.cli`) |
 | Config dataclass + loader | `alphadiana/engine/config/experiment_config.py` (`ExperimentConfig`) |
 | Config validator | `alphadiana/engine/config/validator.py` (`ConfigValidator`) |
 | Annotated core config shape | `configs/schema.yaml` |
-| Harness implementations | `alphadiana/harness/` (`direct_llm.py`, `openclaw/`, `opencode/`, `zeroclaw/`) |
-| Result store | `alphadiana/analysis/io/result_store.py` |
-
-## Next steps
-
-- [Quickstart](./quick-start) — run your first evaluation end to end.
-- [direct_llm](../harnesses/direct-llm) — single-turn baseline, no sandbox.
-- [openclaw](../harnesses/openclaw) — ROCK-sandboxed agent harness.
-- [zeroclaw](../harnesses/zeroclaw) — sandbox/container execution and ROCK auto-deploy modes.
-- [opencode](../harnesses/opencode) — host or Docker controller modes.
+| Harness implementations | `alphadiana/harness/` (`direct_llm/agent.py`, `openclaw/`, `opencode/`, `zeroclaw/`) |
+| Result store | `alphadiana/results/store.py` |

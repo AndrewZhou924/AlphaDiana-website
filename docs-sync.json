@@ -1,0 +1,229 @@
+{
+  "repository": "AndrewZhou924/AlphaDiana-dev",
+  "commit": "9dd7a7eb9485b49c1d452116cc06f9fee8111b3a",
+  "checked": "2026-10-23",
+  "pages": [
+    {
+      "source": "docs/README.md",
+      "page": "docs/intro.md",
+      "source_sha256": "2b6c38932de59bc06ed636caea2bc3e751e969d599f20f88fd794830d92144ea"
+    },
+    {
+      "source": "docs/architecture/README.md",
+      "page": "docs/architecture/index.md",
+      "source_sha256": "aa5e8533fc9885759acf4c7d3524530bbf111ff08026876c8d2837833da68f63"
+    },
+    {
+      "source": "docs/architecture/engine-and-runner.md",
+      "page": "docs/architecture/engine-and-runner.md",
+      "source_sha256": "65b887a31a74f5618de97112c66846fccd09ba112730218ffcdbbd4df95227bc"
+    },
+    {
+      "source": "docs/architecture/observability.md",
+      "page": "docs/architecture/observability.md",
+      "source_sha256": "14b28b6c36e5528165e8f31f8c6a9caf189c16bed39b21f92ad03a7444fcb002"
+    },
+    {
+      "source": "docs/architecture/registries.md",
+      "page": "docs/architecture/registries.md",
+      "source_sha256": "f14de6bbe592b8a70dfabe5ba1778c9c6dd1f60913125b866af5ab7ae272ea65"
+    },
+    {
+      "source": "docs/architecture/sandboxes.md",
+      "page": "docs/architecture/sandboxes.md",
+      "source_sha256": "6be88d6e973c5233132f64680416061c7e829516ddfef26a858e0c7adbdf3848"
+    },
+    {
+      "source": "docs/architecture/scoring-and-results.md",
+      "page": "docs/architecture/scoring-and-results.md",
+      "source_sha256": "a2ee3551c3058b3dc7ef923ce09ef2143a6031f6d83620ca3f9cacbcf1486292"
+    },
+    {
+      "source": "docs/benchmarks/README.md",
+      "page": "docs/benchmarks/index.md",
+      "source_sha256": "53f92de16fea1036549338247c92ded1f6878f02842ab5e787b81e3f1ec9776a"
+    },
+    {
+      "source": "docs/benchmarks/aime.md",
+      "page": "docs/benchmarks/aime.md",
+      "source_sha256": "b2fe8c14d3e47e0a9e744e8e2c9ce9692cd6265c27a8fa40bcb37e74641d9bc4"
+    },
+    {
+      "source": "docs/benchmarks/gpqa-diamond.md",
+      "page": "docs/benchmarks/gpqa-diamond.md",
+      "source_sha256": "42e1f2da8a114a74f1f5c1bf6e3dea5dbb58f9077bed3409b4d434f2092b5b24"
+    },
+    {
+      "source": "docs/benchmarks/hle.md",
+      "page": "docs/benchmarks/hle.md",
+      "source_sha256": "bc77a1efeae19fb617ab5b31bdb7a7f222dee8b1daa1b8728a36866af7f55775"
+    },
+    {
+      "source": "docs/benchmarks/imo-answerbench.md",
+      "page": "docs/benchmarks/imo-answerbench.md",
+      "source_sha256": "874e5a821cfe76d5ea5a19d86a12b34687a20ea917598193762f857d55283391"
+    },
+    {
+      "source": "docs/benchmarks/mmmu-pro.md",
+      "page": "docs/benchmarks/mmmu-pro.md",
+      "source_sha256": "3720fb9703b31f2a52d839308cbe11d5b733e314886b2fd7cb35a1f90bc9caba"
+    },
+    {
+      "source": "docs/benchmarks/podman.md",
+      "page": "docs/benchmarks/podman.md",
+      "source_sha256": "981658e3f1fddcc0302b20c6a70c3943fb2e1904c6336799bc4e6aab52264995"
+    },
+    {
+      "source": "docs/benchmarks/swebench-verified-mini.md",
+      "page": "docs/benchmarks/swebench-verified-mini.md",
+      "source_sha256": "4f1aecf94f3eb9ce5b40ff1bdaede93a514a3030c74fc1c63dda2b00aab50622"
+    },
+    {
+      "source": "docs/benchmarks/swebench-verified.md",
+      "page": "docs/benchmarks/swebench-verified.md",
+      "source_sha256": "5c8999ea0457623a9bc8aeacca139b5a6402625ecd9892958b47984be13fe490"
+    },
+    {
+      "source": "docs/benchmarks/terminal-bench-2.md",
+      "page": "docs/benchmarks/terminal-bench-2.md",
+      "source_sha256": "b67b6fa02351e22c4d6aa640ba9e8c0e29bfce5a6b8aa2df8052d3eb0b5b0e81"
+    },
+    {
+      "source": "docs/concepts/README.md",
+      "page": "docs/concepts/index.md",
+      "source_sha256": "21f13f6d5a76a9c8d882f1c0ef006d1df0c0d6b33f272580a062f7fb18d9603a"
+    },
+    {
+      "source": "docs/concepts/evaluation-axes.md",
+      "page": "docs/concepts/evaluation-axes.md",
+      "source_sha256": "9e85dbce4a96ad48ba676a79d5deb0b8649b742e61194820e498e71052e05222"
+    },
+    {
+      "source": "docs/concepts/harness-aware-evaluation.md",
+      "page": "docs/concepts/harness-aware-evaluation.md",
+      "source_sha256": "d132ee69def0e284f0c6f10a79fb7f58103202f2cff50ab3a8ed687cbad319ee"
+    },
+    {
+      "source": "docs/concepts/isolation-and-fairness.md",
+      "page": "docs/concepts/isolation-and-fairness.md",
+      "source_sha256": "7a94e19e3e7a31277657bbead76de6f7fb48064488beb810f369087a267037ba"
+    },
+    {
+      "source": "docs/configuration/README.md",
+      "page": "docs/configuration/index.md",
+      "source_sha256": "e4a566345470228b3795883372442e1746789b7cba884840ccd67364787f5b41"
+    },
+    {
+      "source": "docs/configuration/cli-and-overrides.md",
+      "page": "docs/configuration/cli-and-overrides.md",
+      "source_sha256": "3b37676a8aa329b966d28297e38cb6763a878c9cd62107ca97cf1b7d9b7a50e8"
+    },
+    {
+      "source": "docs/configuration/config-schema.md",
+      "page": "docs/configuration/config-schema.md",
+      "source_sha256": "6ba40ebd678300bd30f7f4afd9d309b19b36576cbd77664e30ee604ce93d7be9"
+    },
+    {
+      "source": "docs/configuration/release-validation.md",
+      "page": "docs/configuration/release-validation.md",
+      "source_sha256": "d099259b4adecbf0ed88da76abf3a641eba2b41d5ba84f8f5589337ff65dbdb2"
+    },
+    {
+      "source": "docs/contribution/README.md",
+      "page": "docs/contribution/index.md",
+      "source_sha256": "a448297607b4ddc9fcbefe9748ceb55a692b79d80b8776f54f2a4991f16b9dec"
+    },
+    {
+      "source": "docs/contribution/engineering-conventions.md",
+      "page": "docs/contribution/engineering-conventions.md",
+      "source_sha256": "6384e29547d1d0b26766937ede6be1ed30dcfdd2257c738d6a870974e68899e3"
+    },
+    {
+      "source": "docs/contribution/new-benchmark.md",
+      "page": "docs/contribution/new-benchmark.md",
+      "source_sha256": "80191fd54dce34496137989d4baa2b4637c8aa1be46437c7ebe1a49e8691dc69"
+    },
+    {
+      "source": "docs/contribution/new-harness.md",
+      "page": "docs/contribution/new-harness.md",
+      "source_sha256": "e8dc6daee80b1a0ac5b912c4f137f5bdb3658cb0ea4ece692e6388a25c7e5dd3"
+    },
+    {
+      "source": "docs/contribution/runtime-followups.md",
+      "page": "docs/contribution/runtime-followups.md",
+      "source_sha256": "6dc76a6dcef80d9edd6d340847336f018e21aad50f02565facab624cfa988be4"
+    },
+    {
+      "source": "docs/dashboard.md",
+      "page": "docs/dashboard.md",
+      "source_sha256": "15edcaf8b1fe11efef37f521fa9bbd6eff0fa151fcb633b11fcdfbe903ff64e4"
+    },
+    {
+      "source": "docs/getting-started/README.md",
+      "page": "docs/getting-started/index.md",
+      "source_sha256": "abb31655db6021190bc4d61b667b27212fbf86d65d721572d6b7be2df519f2e7"
+    },
+    {
+      "source": "docs/getting-started/installation.md",
+      "page": "docs/getting-started/installation.md",
+      "source_sha256": "544538076e70461fe6008a5cc02ed62ea65bcfb60398aba1f57fe753ad4a6800"
+    },
+    {
+      "source": "docs/getting-started/python-api.md",
+      "page": "docs/getting-started/python-api.md",
+      "source_sha256": "7dd39e46ce91fd23afef82dc5a9e83e864567c434799dbfd7f2380b0b976326a"
+    },
+    {
+      "source": "docs/getting-started/quick-start.md",
+      "page": "docs/getting-started/quick-start.md",
+      "source_sha256": "94f4df91fde3ae719ab63e10f19a5f5b905aea2e3b1d1f68cfe77a5f1d7bf362"
+    },
+    {
+      "source": "docs/getting-started/troubleshooting.md",
+      "page": "docs/getting-started/troubleshooting.md",
+      "source_sha256": "33e2f05aaa65187fc5e490fa376190ecce2141c00c7dd2607d07d41e5dab7f76"
+    },
+    {
+      "source": "docs/harnesses/README.md",
+      "page": "docs/harnesses/index.md",
+      "source_sha256": "4473769dff74aed86d06d033c974dabed3ed7b44d0d14906a75ae7d16f62e2fc"
+    },
+    {
+      "source": "docs/harnesses/direct-llm.md",
+      "page": "docs/harnesses/direct-llm.md",
+      "source_sha256": "8d0bfd9ae06fe06763af8a29eeb4f05b9edf1089c7e7f2b47fc93a2f22dfc19c"
+    },
+    {
+      "source": "docs/harnesses/native-podman.md",
+      "page": "docs/harnesses/native-podman.md",
+      "source_sha256": "ba8793baeed39f637c3e7d86bee7793420941032fad6682fe15e82ee8aaf61c0"
+    },
+    {
+      "source": "docs/harnesses/openclaw.md",
+      "page": "docs/harnesses/openclaw.md",
+      "source_sha256": "1ca64c5bb000239371e7d913b97f5e069a9263fd16c8d2da1ebed106565026e9"
+    },
+    {
+      "source": "docs/harnesses/opencode.md",
+      "page": "docs/harnesses/opencode.md",
+      "source_sha256": "550e1f6f544e2e0d67db51ffdb0547ccf9be2ad1aa5ed77ee5a5291625933bb3"
+    },
+    {
+      "source": "docs/harnesses/pi-harbor.md",
+      "page": "docs/harnesses/pi-harbor.md",
+      "source_sha256": "7464e31a34f271e18a482e6d3e629a9c98158570b29585b505dccdbff2afae22"
+    },
+    {
+      "source": "docs/harnesses/zeroclaw.md",
+      "page": "docs/harnesses/zeroclaw.md",
+      "source_sha256": "d7025a437e4ddf5f1fa3f5f1583fe87ffe6f31aa8f0dea8ccec6dd0733a48b31"
+    }
+  ],
+  "editorial_overrides": [
+    "Onboarding follows the finalized README instead of the older DirectLLM-first guide.",
+    "Installation pins the development revision because the public mirror lacks the new API and example preset.",
+    "Published scores remain sourced from arXiv v1, not the stale upstream results page.",
+    "Companion-specific training guides are excluded from public website documentation.",
+    "Dated validation notes remain historical, not new acceptance claims."
+  ]
+}

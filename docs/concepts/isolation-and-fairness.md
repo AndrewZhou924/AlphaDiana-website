@@ -4,7 +4,7 @@ sidebar_position: 4
 
 # Isolation & Fairness
 
-AlphaDiana compares harnesses ([`direct_llm`](../harnesses/direct-llm), [`zeroclaw`](../harnesses/zeroclaw), [`opencode`](../harnesses/opencode), [`openclaw`](../harnesses/openclaw)) on the same benchmarks. For comparisons that permit tools or filesystem side effects, tasks should run in clean task-scoped environments. If one task could leave files, processes, or state behind for the next task, accuracy numbers would reflect leakage rather than capability. AlphaDiana provides task-scoped runtimes for supported harness paths and records the isolation mode that was actually realized.
+AlphaDiana compares harnesses ([`direct_llm`](/docs/harnesses/direct-llm), [`zeroclaw`](/docs/harnesses/zeroclaw), [`opencode`](/docs/harnesses/opencode), [`openclaw`](/docs/harnesses/openclaw)) on the same benchmarks. For comparisons that permit tools or filesystem side effects, tasks should run in clean task-scoped environments. If one task could leave files, processes, or state behind for the next task, accuracy numbers would reflect leakage rather than capability. AlphaDiana provides task-scoped runtimes for supported harness paths and records the isolation mode that was actually realized.
 
 ## Why task-scoped isolation matters
 
@@ -15,7 +15,8 @@ Task-scoped runtimes keep benchmark-side effects confined to the task environmen
 - ROCK Docker sandboxes or opt-in Podman runtimes for supported standard text
   and multimodal paths.
 - Docker or Podman task containers for `terminal-bench-2`.
-- Official per-task SWE containers (via `swebench_docker`) for `SWE-bench Pro`.
+- Harbor-owned disposable Docker task containers for the Pi-Harbor Terminal-Bench 2 path.
+- Official per-task SWE containers (via `swebench_docker`) for `SWE-bench Verified`.
 
 This is the **practical evaluation boundary** described below, not a formal security boundary.
 
@@ -35,7 +36,7 @@ It is accurate to say AlphaDiana uses task-scoped sandbox or container runtimes 
 
 ## How a run picks its isolation mode
 
-The `Runner` records the chosen mode in `run_metadata["isolation_mode"]` and mirrors it into the run manifest in `alphadiana/engine/runner.py`. The mode is derived from whether a sandbox was configured, auto-created, or predeployed as a pool.
+The `Runner` records the chosen mode in `run_metadata["isolation_mode"]` and mirrors it into the run manifest in `alphadiana/engine/runner.py`. The mode is derived from an agent-declared runtime capability or from whether a sandbox was configured, auto-created, or predeployed as a pool.
 
 | `isolation_mode` | When it applies |
 |---|---|
@@ -44,6 +45,7 @@ The `Runner` records the chosen mode in `run_metadata["isolation_mode"]` and mir
 | `auto_single_sandbox` | One ROCK sandbox auto-created for the run. |
 | `predeployed_pool` / `partial_predeploy` | A pool of ROCK sandboxes predeployed up front (gateway agents). |
 | `fresh_predeployed_pool` / `partial_fresh_predeployed_pool` | Self-healing pool that recreates sandboxes as tasks consume them. |
+| `harbor_disposable_task_container` | An agent declares this task-runtime mode; the Pi-Harbor adapter starts one unique Harbor job and container per `(task, sample_index)`. |
 
 `shared_gateway` does not establish per-task sandbox isolation. It can be the
 intentional mode for a harness that does not use ROCK, or a fallback when an
@@ -82,11 +84,19 @@ harness and sandbox backend, to audit the realized boundary.
 | Benchmark | `openclaw` | `opencode` | `zeroclaw` |
 |---|---|---|---|
 | `terminal-bench-2` | Docker/Podman task container + matching controller | Docker/Podman task container + matching controller | Docker/Podman task container + matching controller |
-| `SWE-bench Pro` | official per-task SWE container via `swebench_docker` | official per-task SWE container via `swebench_docker` | official per-task SWE container via `swebench_docker` |
+| `SWE-bench Verified` | official per-task SWE container via `swebench_docker` | official per-task SWE container via `swebench_docker` | official per-task SWE container via `swebench_docker` |
 | `MMMU-Pro` | ROCK sandbox | Dockerized controller in the checked-in config | ROCK sandbox |
 | `IMO-AnswerBench` | ROCK sandbox | Dockerized controller in the checked-in config | ROCK sandbox |
 | `GPQA-Diamond` | ROCK sandbox | Dockerized controller in the checked-in config | ROCK sandbox |
 | `HLE` | ROCK sandbox | Dockerized controller in the checked-in config | ROCK sandbox |
+
+The Pi-Harbor Terminal-Bench 2 path is separate from this three-harness matrix.
+It mounts the exact Node and Pi runtime read-only, disables Pi's ambient
+sessions/extensions/skills/prompts/context files, and loads only explicit audit
+and candidate extensions. AlphaDiana metrics run after Harbor exits and are not
+present in the agent container. Harbor `--no-delete` preserves completed
+evidence for review; the adapter never reuses that container or its HOME for a
+later sample.
 
 `opencode` supports `host`, `docker`, and opt-in `podman` controller modes; the
 checked-in plain benchmark configs default to Docker. The generic `zeroclaw`
@@ -97,7 +107,7 @@ explicit `runtime_backend: podman` container, never directly on the host.
 
 Beyond the runtime boundary, the engine adds defenses against state that escapes a single task:
 
-- **OpenClaw integrity guard.** Responses flagged as session-tainted, stream-incomplete, or carrying heartbeat taint text are rejected by `_openclaw_integrity_guard_reason` in `alphadiana/engine/runner.py` and recorded as errors rather than scored, guarding against leaked cross-task state.
+- **OpenClaw integrity guard.** `integrity_guard_reason` in `alphadiana/harness/openclaw/integrity.py` rejects session-tainted, stream-incomplete, and heartbeat-tainted responses. Runner persists these responses as errors before scoring.
 - **Secret redaction.** Runner and result-store helpers scrub recognized credential assignments and sensitive keys before persistence. This is best-effort defense in depth, not a substitute for reviewing artifacts and running a secret scan before publication.
 - **ROCK TTL safety net.** `auto_clear_seconds` is a server-side container TTL. Explicit ROCK sandbox config defaults to 3600 seconds; auto-created OpenClaw/ZeroClaw paths default to 7200 seconds, and dashboard-oriented paths may use 28800 seconds. Record the effective value rather than assuming one global default.
 
@@ -115,6 +125,6 @@ unrecognized formats or third-party artifacts can still contain sensitive data.
 
 ## See also
 
-- [Engine & Runner](../architecture/engine-and-runner) for how work items are expanded and dispatched.
-- [Sandboxes](../architecture/sandboxes) for the ROCK / Docker / Podman backends.
-- Harness pages: [`zeroclaw`](../harnesses/zeroclaw), [`opencode`](../harnesses/opencode), [`openclaw`](../harnesses/openclaw).
+- [Engine & Runner](/docs/architecture/engine-and-runner) for how work items are expanded and dispatched.
+- [Sandboxes](/docs/architecture/sandboxes) for the ROCK / Docker / Podman backends.
+- Harness pages: [`zeroclaw`](/docs/harnesses/zeroclaw), [`opencode`](/docs/harnesses/opencode), [`openclaw`](/docs/harnesses/openclaw).

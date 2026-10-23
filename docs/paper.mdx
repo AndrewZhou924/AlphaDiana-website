@@ -15,7 +15,7 @@ The results on this website follow **arXiv:2610.20675v1**, specifically Figure 5
 
 ## What the study measures
 
-AlphaDiana compares complete model-harness systems and links their answers to execution status, traces, and resource records. Macro analyses compare complete agents; micro interventions examine tools, skills, and memory under matched conditions. A change in tools can also change the prompt, so an intervention should be interpreted with its full configuration.
+AlphaDiana compares complete model-harness systems and links their answers to execution status, traces, and resource records. Macro analyses compare complete agents; the paper’s micro interventions examine tools and skills under matched conditions; memory is a separately configurable framework extension. A change in tools can also change the prompt, so an intervention should be interpreted with its full configuration.
 
 The answer-based evaluation pairs **Qwen3.5-27B**, **Gemma-4-31B-IT**, and **Kimi-K2.6** with **OpenClaw 2026.3.7**, **ZeroClaw v0.6.9**, and **OpenCode v1.3.2**. Direct is the single-response, no-tool reference. Interactive evaluations use Qwen and Gemma with benchmark-native references.
 
@@ -48,13 +48,13 @@ Values are percentages. Interactive evaluation and runtime failures count as uns
 - **Time limits:** a 9,300-second controller or request cap; OpenClaw also has a 9,000-second stream-total cap. ZeroClaw allows 100 tool iterations per run and 200 actions per hour.
 - **Default harness conditions:** native prompts and tools, without added skill libraries or instructions to use memory. Native memory remains available.
 
-The latest README's DirectLLM quick-start preset, checked on 21 October 2026, uses one sample, temperature 0, and a 32,768-token limit. Those are runnable configuration defaults, not the AIME protocol above; use the paper settings explicitly for a reproduction.
+The finalized README quick start, checked on 23 October 2026, runs OpenCode on three AIME tasks with one sample per task and no task retries. It is an onboarding example, not the AIME protocol above; use the paper settings explicitly for a reproduction.
 
 These limits do not equalize total computation: a harness can make several model calls. The paper's settings are an experimental protocol, not a claim about the defaults of every downloadable configuration.
 
 ## Findings and limits
 
-Harness effects depend on the model and task. All three harnesses reduce Qwen's average accuracy on the five answer-based benchmarks, while ZeroClaw improves Gemma on all five. Skills and memory do not reliably improve accuracy. Correctness must also accompany behavior and resource measurements: low token entropy can occur in wrong answers, and fewer tokens per attempt need not mean fewer tokens per correct answer.
+Harness effects depend on the model and task. All three harnesses reduce Qwen's average accuracy on the five answer-based benchmarks, while ZeroClaw improves Gemma on all five. Tool and skill effects depend on the task and configuration. Correctness must also accompany behavior and resource measurements: low token entropy can occur in wrong answers, and fewer tokens per attempt need not mean fewer tokens per correct answer.
 
 Appendix B.2 notes incomplete output-token capture for several model-benchmark-harness combinations, including Qwen/AIME 26 with OpenClaw and ZeroClaw. Token means use attempts with recorded counts; missing usage is not evidence of zero consumption. Report capture coverage when comparing resource use.
 

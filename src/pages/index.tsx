@@ -1,85 +1,22 @@
 import { paperTitle, paperUrl, paperBibtex, productTagline, codeUrl } from '@site/src/data/publication';
 import Hero from '@site/src/components/Hero';
-import FeaturesGrid from '@site/src/components/FeaturesGrid';
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
 import InstallBox from '@site/src/components/InstallBox';
 import Scoreboard from '@site/src/components/Scoreboard';
 import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
 import React, { ReactNode } from 'react';
-import {
-  StandardizedIcon,
-  AgentIcon,
-  SandboxIcon,
-  BalanceIcon,
-  TargetIcon,
-  TraceIcon,
-  ConcurrencyIcon,
-} from '@site/src/components/icons/FeatureIcons';
 import styles from './index.module.css';
 
-const features = [
-  {
-    icon: BalanceIcon,
-    title: 'Harness-Aware Evaluation',
-    description: 'Treat the evaluated unit as model plus harness, with Direct inference as the control.',
-  },
-  {
-    icon: TargetIcon,
-    title: 'Controlled Comparison',
-    description: 'Match the model, task, scorer, and shared budgets while disclosing harness-specific runtime conditions.',
-  },
-  {
-    icon: AgentIcon,
-    title: 'Open Harness Interfaces',
-    description: 'Run direct inference and reasoning agent harnesses through one shared result schema.',
-  },
-  {
-    icon: StandardizedIcon,
-    title: 'Verifiable Reasoning Tasks',
-    description: 'Use deterministic or programmatic scorers for math, science, multimodal, and coding tasks.',
-  },
-  {
-    icon: TraceIcon,
-    title: 'Trajectory Attribution',
-    description: 'Log actions, observations, resource use, termination states, and scoring metadata.',
-  },
-  {
-    icon: SandboxIcon,
-    title: 'Sandboxed Execution',
-    description: 'Run supported tool-using paths in task-scoped environments with explicit resource and reset policies.',
-  },
-  {
-    icon: ConcurrencyIcon,
-    title: 'Macro And Micro Studies',
-    description: 'Compare whole harnesses, then ablate tools, skills, and memory to explain the score shifts.',
-  },
-  {
-    icon: TraceIcon,
-    title: 'Reproducible Reports',
-    description: 'Reopen saved runs and export tables, figures, source hashes, and evidence coverage.',
-  },
-];
-
-const installCommand = `git clone https://github.com/AndrewZhou924/AlphaDiana-dev.git
-cd AlphaDiana-dev
-python -m venv .venv
-source .venv/bin/activate
-pip install -e '.[analysis,benchmarks,agents]'`;
-
-const runCommand = `export OPENAI_BASE_URL="https://your-provider.example/v1"
-export OPENAI_API_KEY="your-api-key"
-export OPENAI_MODEL_NAME="Qwen/Qwen3.5-27B"
-
-# Validate, then run one task with one sample
-alphadiana validate configs/macro_runs/aime2026_directllm_qwen35_27b.yaml \\
-  -o benchmark.config.max_tasks=1
-alphadiana run configs/macro_runs/aime2026_directllm_qwen35_27b.yaml \\
-  -o run_id=quickstart_aime_directllm_t1_k1 \\
-  -o benchmark.config.max_tasks=1 \\
-  -o num_samples=1
-
-# Print a report from saved attempts
-alphadiana report results/`;
+const installCommand = "git clone https://github.com/AndrewZhou924/AlphaDiana-dev.git\ncd AlphaDiana-dev\ngit checkout 9dd7a7eb9485b49c1d452116cc06f9fee8111b3a\nuv venv --python 3.10 .venv\nsource .venv/bin/activate\nuv pip install -e '.[analysis,benchmarks,agents]'";
+const endpointCommand = "export OPENAI_BASE_URL=\"https://your-provider.example/v1\"\nexport OPENAI_API_KEY=\"your-api-key\"\nexport OPENAI_MODEL_NAME=\"Qwen/Qwen3.5-27B\"";
+const imageCommand = "podman build \\\n  -f alphadiana/harness/opencode/deploy/Containerfile.podman-controller \\\n  -t localhost/alphadiana-opencode-podman:latest \\\n  alphadiana/harness/opencode/deploy";
+const cliCommand = "alphadiana validate configs/examples/aime2026_opencode.yaml\nalphadiana run configs/examples/aime2026_opencode.yaml";
+const reportCommand = "alphadiana report results/";
+const exportCommand = "python - <<'PY'\nimport alphadiana as ad\n\nad.analyzer(\"results/aime_opencode_cli.jsonl\").export(\"figures/aime_opencode_cli\")\nPY";
+const apiCommand = "import alphadiana as ad\n\nagent = ad.agent(\n    \"opencode\", version=\"1.3.2\", controller_mode=\"podman\",\n    controller_image=\"localhost/alphadiana-opencode-podman:latest\",\n)\ndata = ad.dataset(\"MathArena/aime_2026\", benchmark=\"aime\", max_tasks=3)\nscorer = ad.scorer.create(\"numeric\")\n\nartifacts = ad.runner(\n    run_id=\"aime_opencode_api\", num_samples=1, task_retries=0, strict_report=True,\n).compute(agent=agent, data=data, scorer=scorer)";
+const apiExportCommand = "ad.analyzer(artifacts).export(\"figures/aime_opencode_api\")";
 
 export default function Home(): ReactNode {
   return (
@@ -109,7 +46,9 @@ export default function Home(): ReactNode {
             </div>
           </section>
 
-          <section className={styles.motivationBand}>
+          <section id="positioning" className={styles.motivationBand}>
+            <h2>Positioning</h2>
+            <p>A harness controls how a model uses prompts, tools and persistent state. Changing the harness can change the behavior of the same model.</p>
             <figure className={styles.motivationFigure}>
               <img src="/img/paper/position.png" alt="From model-centric to harness-aware evaluation" loading="lazy" />
               <figcaption>
@@ -122,10 +61,80 @@ export default function Home(): ReactNode {
             </figure>
           </section>
 
+          <section id="why-alphadiana" className={styles.architectureBand}>
+            <div className={styles.architectureFigure}>
+              <h2>Why AlphaDiana?</h2>
+              <ul className={styles.whyList}>
+                <li><strong>Compare agents:</strong> run different model–harness combinations on the same tasks and compare their scores and resource use.</li>
+                <li><strong>Inspect failures:</strong> connect wrong answers to execution status, tool interactions and action patterns in saved trajectories.</li>
+                <li><strong>Test components:</strong> change tools, skills or memory settings and compare outcomes under recorded task and budget settings.</li>
+              </ul>
+              <figure>
+                <img src="/img/readme/alphadiana-overview.png" alt="README overview of execution evidence, scores, failure labels, resource usage and component comparisons" loading="lazy" />
+                <figcaption>Measurement examples from the finalized README. Each plot labels its model, benchmark and metric.</figcaption>
+              </figure>
+            </div>
+          </section>
+          <section id="scope" className={styles.architectureBand}>
+            <div className={styles.architectureFigure}>
+              <h2>Scope at a glance</h2>
+              <div className={styles.scopeTable}><table>
+                <thead><tr><th>Layer</th><th>What you can configure or measure</th></tr></thead>
+                <tbody>
+                  <tr><th>Configure</th><td>OpenAI-compatible models; <Link to="/docs/harnesses/">OpenCode, OpenClaw, ZeroClaw, Pi, DeepSeek Harness and benchmark-specific agents</Link>; tools, skills, memory and prompts; <Link to="/docs/architecture/sandboxes">supported host, Docker or Podman runtimes</Link>.</td></tr>
+                  <tr><th>Run</th><td><Link to="/docs/benchmarks/">AIME 2026, GPQA-Diamond, HLE, IMO-AnswerBench, MMMU-Pro, SWE-bench Verified and Terminal-Bench 2</Link>, plus custom tasks. Control repeats, sampling, budgets, concurrency, retries and state isolation through CLI/YAML or Python.</td></tr>
+                  <tr><th>Measure</th><td>Accuracy, Pass@k, Avg@k, execution status and failure labels; output tokens, wall time and cost per correct answer; action composition, transitions and token/post-tool entropy. Export tables, figures, source hashes and evidence coverage.</td></tr>
+                  <tr><th>Extend</th><td><Link to="/docs/architecture/registries">Register harnesses, benchmarks, environments, scorers and metrics</Link>, or add saved-run analysis plugins.</td></tr>
+                </tbody>
+              </table></div>
+              <p>Entropy requires captured probabilities; action and failure labels require an explicitly enabled analysis model. Compare runs with matched scorers, isolation and budgets, and read Pass@k / Avg@k with the configured repeat count.</p>
+            </div>
+          </section>
+          <section id="quick-start" className={styles.quickstartSection}>
+            <div className={styles.quickstartContent}>
+              <p className={styles.kicker}>Quick Start</p>
+              <h2>Run OpenCode on three AIME 2026 tasks</h2>
+              <p>Choose CLI or Python API after the shared setup. Both use one sample per task, no task retries, and strict reporting, then analyze saved results. Requires uv, Python ≥ 3.10, Podman and an OpenAI-compatible endpoint.</p>
+              <p className={styles.versionNote}>These examples follow the finalized development README. The public mirror has not yet received this API and preset; use the pinned development checkout below. See the <Link to="/docs/getting-started/quick-start">complete guide</Link> for version and runtime requirements. This is a pipeline check, not the paper's full protocol.</p>
+              <h3>1. Install</h3><InstallBox command={installCommand} />
+              <h3>2. Set up the model endpoint</h3><InstallBox command={endpointCommand} />
+              <h3>3. Build the OpenCode controller image</h3><InstallBox command={imageCommand} />
+              <Tabs groupId="quickstart-interface">
+                <TabItem value="cli" label="CLI" default>
+                  <h3>Configure and run</h3><InstallBox command={cliCommand} />
+                  <h3>Analyze outputs</h3><InstallBox command={reportCommand} />
+                  <InstallBox command={exportCommand} />
+                  <p>Saved attempts: <code>results/aime_opencode_cli.jsonl</code>. Exports: <code>figures/aime_opencode_cli/</code>.</p>
+                </TabItem>
+                <TabItem value="python" label="Python API">
+                  <h3>Configure and run</h3><InstallBox command={apiCommand} language="python" />
+                  <h3>Analyze outputs</h3><InstallBox command={apiExportCommand} language="python" />
+                  <p>Saved attempts: <code>results/aime_opencode_api.jsonl</code>. Exports: <code>figures/aime_opencode_api/</code>.</p>
+                </TabItem>
+              </Tabs>
+              <p>Exports include measurement tables, PDF/SVG/PNG figures, plotted data, source hashes and evidence coverage. Default analysis reads saved evidence. <Link to="/docs/getting-started/python-api#optional-model-judgments">Optional action and failure annotations</Link> make additional analysis-model calls.</p>
+            </div>
+          </section>
+          <section id="python-api" className={styles.architectureBand}>
+            <figure className={styles.architectureFigure}>
+              <p className={styles.kicker}>Measurement API</p>
+              <h2>Compose tasks, agents, environments, and scoring</h2>
+              <p className={styles.flowLead}>
+                Select the agent, dataset and scorer separately, then pass them to the runner.
+                The <Link to="/docs/getting-started/python-api">Python API example</Link> runs OpenCode on three
+                AIME tasks and exports scores, traces and figures. It includes the required Podman image setup.
+              </p>
+              <a href="/img/paper/api.png" aria-label="Open the original API figure at full size">
+                <img src="/img/paper/api.png" alt="Paper Figure 4: dataset, agent, scorer, runner, environment, and analyzer interfaces" loading="lazy" />
+              </a>
+              <figcaption><strong>Figure 4. Functional interface of AlphaDiana.</strong> Original paper illustration, including its example measurements.</figcaption>
+            </figure>
+          </section>
+
           <section className={styles.architectureBand}>
             <figure className={styles.architectureFigure}>
-              <p className={styles.kicker}>System Architecture</p>
-              <h2>One runner, explicit evaluation boundaries</h2>
+              <p className={styles.kicker}>Documentation</p>
+              <h2>Configure, execute, save evidence, analyze</h2>
               <p className={styles.flowLead}>
                 Configuration selects the tasks, agents, environments, and scorers. The runner allocates sessions,
                 calls native harness runtimes, and saves execution artifacts and scorer judgments. The analyzer
@@ -143,48 +152,7 @@ export default function Home(): ReactNode {
             </figure>
           </section>
 
-          <section id="python-api" className={styles.architectureBand}>
-            <figure className={styles.architectureFigure}>
-              <p className={styles.kicker}>Measurement API</p>
-              <h2>Compose tasks, agents, environments, and scoring</h2>
-              <p className={styles.flowLead}>
-                Select the agent, dataset and scorer separately, then pass them to the runner.
-                The <Link to="/docs/getting-started/python-api">Python API example</Link> runs OpenCode on three
-                AIME tasks and exports scores, traces and figures. It includes the required Podman image setup.
-              </p>
-              <a href="/img/paper/api.png" aria-label="Open the original API figure at full size">
-                <img src="/img/paper/api.png" alt="Paper Figure 4: dataset, agent, scorer, runner, environment, and analyzer interfaces" loading="lazy" />
-              </a>
-              <figcaption><strong>Figure 4. Functional interface of AlphaDiana.</strong> Original paper illustration, including its example measurements.</figcaption>
-            </figure>
-          </section>
-
-          <FeaturesGrid title="What AlphaDiana standardizes" features={features} background="white" />
-
           <Scoreboard />
-
-          <section className={styles.quickstartSection}>
-            <div className={styles.quickstartContent}>
-              <p className={styles.kicker}>Quick Start</p>
-              <h2>Run one AIME 2026 task with DirectLLM</h2>
-              <p className={styles.flowLead}>
-                Follow the latest README: connect a Qwen3.5-27B endpoint, validate the preset, and save one scored
-                attempt. This direct model call needs Python 3.10 or newer and no task container. The preset requires
-                streaming, logprobs, and thinking-option support. This is a smoke test, not the paper protocol.
-                See the <Link to="/docs/getting-started/quick-start">complete quick start</Link> for settings and outputs.
-              </p>
-              <div className={styles.installGrid}>
-                <div>
-                  <h3>1. Install</h3>
-                  <InstallBox command={installCommand} language="bash" />
-                </div>
-                <div>
-                  <h3>2. Connect and run</h3>
-                  <InstallBox command={runCommand} language="bash" />
-                </div>
-              </div>
-            </div>
-          </section>
 
           <section className={styles.citationSection}>
             <div className={styles.citationInner}>

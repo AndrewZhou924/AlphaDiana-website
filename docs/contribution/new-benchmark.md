@@ -10,7 +10,7 @@ returns a list of `BenchmarkTask` objects. Classes self-register into the
 trigger that registration, then resolves the class with
 `BenchmarkRegistry.get(benchmark_name)`. Adding a new benchmark is four edits:
 subclass `Benchmark`, set `name` and `default_scorer`, register at the module
-bottom, and add the import to `Runner.setup()`.
+bottom, and add the import to `load_builtin_benchmarks()` in `alphadiana/engine/components.py`.
 
 ## The `Benchmark` contract
 
@@ -56,9 +56,8 @@ hands to a harness and the scorer:
 
 `ground_truth` is intentionally polymorphic. It is a plain string for text and
 MCQ benchmarks (`aime`, `gpqa_diamond`, `hle`, `mmmu_pro`, `custom`,
-`imo_answerbench`), a dict for `swebench_pro_os` (`{instance_id, repo,
-base_commit}`), and the sentinel string `"1"` for `terminal_bench2`. Pick the
-shape your scorer expects.
+`imo_answerbench`) and the sentinel string `"1"` for `terminal_bench2`. Pick
+the shape your scorer expects.
 
 ## Loading a HuggingFace dataset
 
@@ -109,7 +108,7 @@ set `max_tasks` together with a pre-sliced split.
 Two things make a benchmark discoverable.
 
 1. **Self-register at the module bottom.** Every shipped benchmark ends with an
-   explicit call (the `register_benchmark` decorator in `registry.py` exists but
+   explicit call (the `register_benchmark` decorator in `alphadiana/engine/components.py` exists but
    is unused by the shipped loaders):
 
    ```python
@@ -120,10 +119,10 @@ Two things make a benchmark discoverable.
    `_registry` dict. `.get(name)` raises `KeyError` listing available names if
    the name is missing, and `.list()` returns the sorted names.
 
-2. **Add the import to `Runner.setup()`.** Registration is import-side-effect
+2. **Add the import to `load_builtin_benchmarks()`.** Registration is import-side-effect
    driven, and `benchmarks/__init__.py` does **not** auto-import every module.
-   `Runner.setup()` in `alphadiana/engine/runner.py` explicitly imports
-   all benchmark modules before resolving the class:
+   `load_builtin_benchmarks()` in `alphadiana/engine/components.py` imports
+   built-in benchmark modules. Both Runner setup and `list-benchmarks` call it:
 
    ```python
    import alphadiana.benchmarks.my_benchmark.benchmark  # noqa: F401
@@ -146,9 +145,9 @@ metadata={"memory_mode": str(item.get("memory_mode", "build"))}
 
 The three agentic harnesses read `task.metadata.get("memory_mode", "build")` and
 special-case `"frozen"` to suppress the post-task memory store or fork a frozen
-snapshot. See [`../harnesses/zeroclaw`](../harnesses/zeroclaw),
-[`../harnesses/openclaw`](../harnesses/openclaw), and
-[`../harnesses/opencode`](../harnesses/opencode). Most loaders should leave this
+snapshot. See [`../harnesses/zeroclaw`](/docs/harnesses/zeroclaw),
+[`../harnesses/openclaw`](/docs/harnesses/openclaw), and
+[`../harnesses/opencode`](/docs/harnesses/opencode). Most loaders should leave this
 field out; the default everywhere is `"build"`.
 
 ## Running it
@@ -167,7 +166,7 @@ scorer:
 ```
 
 ```bash
-# Quick diagnostic only; the command imports a subset of Runner modules
+# List all built-in benchmarks loaded through the shared registry loader
 python -m alphadiana.cli list-benchmarks
 
 # Run it
@@ -179,6 +178,6 @@ wrote scored results. It does not mean the model answered correctly.
 
 ## See also
 
-- [Benchmark index](../benchmarks/) — the registered benchmarks and per-benchmark pages.
-- [Harnesses overview](../harnesses/) — the `Agent` contract that consumes a `BenchmarkTask`.
-- [Benchmark isolation](../concepts/isolation-and-fairness) — sandbox / containerization wording.
+- [Benchmark index](/docs/benchmarks/) — the registered benchmarks and per-benchmark pages.
+- [Harnesses overview](/docs/harnesses/) — the `Agent` contract that consumes a `BenchmarkTask`.
+- [Benchmark isolation](/docs/concepts/isolation-and-fairness) — sandbox / containerization wording.

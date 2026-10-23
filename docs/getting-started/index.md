@@ -1,20 +1,15 @@
 ---
-sidebar_position: 1
+sidebar_position: 2
 ---
 
 # Getting Started
 
-Start with one scored task, then inspect the saved evidence before scaling up.
+The CLI and Python API examples both run OpenCode 1.3.2 on three AIME 2026 tasks, with one sample per task.
 
-- [Quick Start](./quick-start): install the execution and analysis dependencies, connect a model endpoint, and run one AIME 2026 task with DirectLLM.
-- [Python API and analysis](./python-api): build the OpenCode Podman controller, run three tasks, and export measurements from saved artifacts.
-- [Installation](./installation): additional runtime and ROCK setup.
-- [Troubleshooting](./troubleshooting): diagnose configuration, provider and runtime failures.
+1. [Install and configure the endpoint](/docs/getting-started/installation), then build the Podman controller image.
+2. [Choose CLI or Python API](/docs/getting-started/quick-start) to execute and score the tasks.
+3. [Reopen and analyze saved evidence](/docs/getting-started/python-api) to export measurement tables and figures.
 
-The quick start and API examples follow the [latest development README](https://github.com/AndrewZhou924/AlphaDiana-dev). Its scope table lists supported harnesses, execution environments, measurements and extension points.
+For the sandbox-free control, use the [DirectLLM baseline](/docs/getting-started/direct-llm-baseline). These small examples check the pipeline; they do not reproduce the paper's full experiment protocol.
 
-## Read results alongside execution status
-
-Check the score, `score_status`, execution status, repeat count and recorded isolation mode. A saved attempt may be incorrect or may have failed during execution or scoring.
-
-`alphadiana report results/` prints a Markdown summary. The Python analyzer exports tables, PDF/SVG/PNG figures, source hashes and evidence coverage. Optional action and failure annotations require a separately configured analysis model; they are not implicit in offline exports.
+See [Troubleshooting](/docs/getting-started/troubleshooting) for provider, runtime and result-status problems.

@@ -878,3 +878,13 @@
   font-size: 0.82rem;
   color: var(--ifm-font-color-secondary);
 }
+
+.whyList { text-align: left; line-height: 1.8; padding-left: 1.4rem; }
+.scopeTable { overflow-x: auto; text-align: left; margin: 1.5rem 0; }
+.scopeTable table { display: table; width: 100%; }
+.scopeTable th { white-space: nowrap; }
+.scopeTable td { min-width: 240px; }
+.versionNote { border-left: 3px solid var(--ifm-color-primary); padding: .75rem 1rem; background: var(--ifm-color-emphasis-100); text-align: left; }
+.quickstartContent pre { text-align: left; }
+.quickstartContent h3 { margin: 1.8rem 0 1rem; }
+.motivationBand > h2, .motivationBand > p { max-width: 1052px; margin: 0 auto 1rem; padding: 0 1.5rem; text-align: center; }
