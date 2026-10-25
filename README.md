@@ -6,10 +6,9 @@ datasets, run artifacts, credentials, or the dashboard backend.
 
 ## Published content
 
-Product wording, citation, quick start and Python API examples follow
+Product wording, quick start and Python API examples follow
 [AlphaDiana-dev README at `5721533`](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/5721533be9c1d66a2e37c6dadc99b0c6ce284c90/README.md),
-checked on 25 October 2026. `src/data/publication.ts` stores the shared citation
-verbatim, including author order. The public `tmlr-group/AlphaDiana` README was
+checked on 25 October 2026. `src/data/publication.ts` stores the shared citation; author order follows the arXiv v1 title page, correcting the README's differing position for Menghan Lu. The public `tmlr-group/AlphaDiana` README was
 also checked, but still differs; do not mix its old installation/API instructions
 with the development examples. Homepage GitHub and setup links name the matching
 development repository explicitly.
@@ -69,3 +68,7 @@ examples must remain environment-variable placeholders rather than credentials.
 ## Paper-page layout preview
 
 `/paper-preview` presents the same live homepage content in a research-paper layout, with a centered paper header, author list, compact resource links, section navigation and quieter figure presentation. The shared setup is expandable; both execution interfaces remain accessible. The default homepage and Docs routes remain available for comparison. See [design references](DESIGN-REFERENCES.md) for the template research and rationale.
+
+## Paper content audit
+
+The homepage and paper-facing Docs were checked against arXiv v1 on 25 October 2026. See `PAPER-CONTENT-AUDIT.md` for the checked claims, source locations, citation correction, and separation of paper protocols from runtime presets.

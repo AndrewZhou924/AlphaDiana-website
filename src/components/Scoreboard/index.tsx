@@ -110,8 +110,8 @@ export default function Scoreboard() {
         <div className={styles.findings}>
           <div className={styles.finding}>
             <strong>Model perspective.</strong> Harnessing is not a model-agnostic improvement.
-            On these answer-based benchmarks, the evaluated harnesses lower Qwen3.5-27B's average accuracy, help Gemma-4-31B-IT on several
-            answer-based tasks, and yield mixed outcomes for Kimi-K2.6.
+            All three harnesses lower Qwen3.5-27B's scores on all five answer-based benchmarks;
+            ZeroClaw improves Gemma-4-31B-IT on all five. Effects are mixed for Kimi-K2.6.
           </div>
           <div className={styles.finding}>
             <strong>Task perspective.</strong> Harness benefits are task-dependent. Gains on answer-based reasoning do
@@ -176,6 +176,12 @@ export default function Scoreboard() {
           <p className={styles.takeaway}>{model.takeaway}</p>
         </div>
 
+        <p className={styles.footnote}>
+          The paper also tests tools, skills, and memory. For Qwen on AIME 26, its three memory conditions
+          improve OpenCode and reduce OpenClaw and ZeroClaw accuracy relative to their defaults; all remain
+          below Direct. These comparisons combine memory-use instructions and persistence, and do not isolate
+          a single causal mechanism. See <a href="/docs/paper#memory-is-part-of-the-published-study">memory settings and limits</a>.
+        </p>
         <p className={styles.footnote}>
           Values are percentages (higher is better); deltas are absolute differences vs. Direct. This view presents
           the five answer-based benchmarks in <a href={paperVersionUrl}>Figure 5 of arXiv:2610.20675v1</a>.

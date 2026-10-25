@@ -9,7 +9,7 @@ Reasoning performance in an agent system depends on more than the base model. It
 ## The pages
 
 - **[Harness-Aware Evaluation](/docs/concepts/harness-aware-evaluation)** — why the harness is a measured variable, the `Agent` contract every harness implements, and how the registry plugs them in.
-- **[Evaluation Axes](/docs/concepts/evaluation-axes)** — paper Tool/Skill matrices and the separate Memory extension condition bundles, including the prompt/runtime changes each intervention actually makes.
+- **[Evaluation Axes](/docs/concepts/evaluation-axes)** — published tool, skill, and memory comparisons and their runtime condition bundles, including the prompt/runtime changes each intervention actually makes.
 - **[Isolation & Fairness](/docs/concepts/isolation-and-fairness)** — task-scoped sandbox and container runtimes, what "isolated" does and does not mean, and the controls that keep two runs comparable.
 
 ## The contract every harness shares

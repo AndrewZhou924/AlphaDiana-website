@@ -105,7 +105,7 @@ export function ResearchHome({paperLayout = false}: {paperLayout?: boolean}): Re
                 <tbody>
                   <tr><th>Configure</th><td>OpenAI-compatible models; <Link to="/docs/harnesses/">OpenCode, OpenClaw, ZeroClaw, Pi, DeepSeek Harness and benchmark-specific agents</Link>; tools, skills, memory and prompts; <Link to="/docs/architecture/sandboxes">supported host, Docker or Podman runtimes</Link>.</td></tr>
                   <tr><th>Run</th><td><Link to="/docs/benchmarks/">AIME 2026, GPQA-Diamond, HLE, IMO-AnswerBench, MMMU-Pro, SWE-bench Verified and Terminal-Bench 2</Link>, plus custom tasks. Control repeats, sampling, budgets, concurrency, retries and state isolation through CLI/YAML or Python.</td></tr>
-                  <tr><th>Measure</th><td>Accuracy, Pass@k, Avg@k, execution status and failure labels; output tokens, wall time and cost per correct answer; action composition, transitions and token/post-tool entropy. Export tables, figures, source hashes and evidence coverage.</td></tr>
+                  <tr><th>Measure</th><td>Accuracy, Pass@k, Avg@k, execution status and failure labels; output tokens, wall time and output tokens per correct answer; action composition, transitions and token/post-tool entropy. Export tables, figures, source hashes and evidence coverage.</td></tr>
                   <tr><th>Extend</th><td><Link to="/docs/architecture/registries">Register harnesses, benchmarks, environments, scorers and metrics</Link>, or add saved-run analysis plugins.</td></tr>
                 </tbody>
               </table></div>
@@ -150,7 +150,7 @@ export function ResearchHome({paperLayout = false}: {paperLayout?: boolean}): Re
               <a href="/img/paper/api.png" aria-label="Open the original API figure at full size">
                 <img src="/img/paper/api.png" alt="Paper Figure 4: dataset, agent, scorer, runner, environment, and analyzer interfaces" loading="lazy" />
               </a>
-              <figcaption><strong>Figure 4. Functional interface of AlphaDiana.</strong> Original paper illustration, including its example measurements.</figcaption>
+              <figcaption><strong>Figure 4. Functional interface of AlphaDiana.</strong> Original paper illustration with schematic calls and illustrative measurements. Use the Quick Start above for executable commands.</figcaption>
             </figure>
           </section>
 

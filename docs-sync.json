@@ -224,6 +224,7 @@
     "Installation pins the development revision because the public mirror lacks the new API and example preset.",
     "Published scores remain sourced from arXiv v1, not the stale upstream results page.",
     "Companion-specific training guides are excluded from public website documentation.",
-    "Dated validation notes remain historical, not new acceptance claims."
+    "Dated validation notes remain historical, not new acceptance claims.",
+    "Paper-facing descriptions follow arXiv v1 Section 4 and Appendix D.4: memory is a published intervention; runtime scope names are distinguished from paper conditions. Citation author order follows arXiv rather than the README. See PAPER-CONTENT-AUDIT.md."
   ]
 }

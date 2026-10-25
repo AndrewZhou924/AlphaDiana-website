@@ -80,7 +80,7 @@ the `register()` call *and* an import line in the runner.
 `DirectLLMAgent` (`alphadiana/harness/direct_llm/agent.py`, `name = "direct_llm"`) is
 the **no-harness reference**: a single-turn system+user chat to an
 OpenAI-compatible endpoint with **no tools, no multi-turn loop, and no code
-execution**. It is the floor every scaffold is measured against, useful for
+execution**. It is a reference rather than an accuracy floor, useful for
 establishing a clean baseline before measuring the effect of an agent framework.
 
 It deliberately builds its own client with `httpx.Client(trust_env=False)` so
@@ -90,7 +90,7 @@ prefers the boxed value. Reasoning is recovered from `reasoning_content` /
 `reasoning` model-extra fields and from `<think>...</think>` tags.
 
 By default `direct_llm` also captures logprobs (`capture_logprobs=True`) and
-quantizes them to `int16`, so the baseline produces token-entropy data for free.
+quantizes them to `int16`, so token-entropy analysis is available when the endpoint returns usable probability evidence. Capture coverage must still be checked.
 
 ### Config
 
@@ -142,23 +142,19 @@ python -m alphadiana.cli run configs/macro_runs/aime2026_directllm_qwen35_27b.ya
 
 ## The agent scaffold tax
 
-A harness is not free. The same multi-turn loop, tool documentation, and skill
-preamble that *can* lift accuracy also injects tokens, latency, parsing steps,
-and new failure modes (timeouts, truncation, tool-call malformation, session
-overflow). On easy or self-contained problems the scaffold often costs more than
-it adds, so the agent can score **below** its own `direct_llm` baseline on the
-identical model and benchmark. We call that gap the **agent scaffold tax**.
+A harness may improve or reduce accuracy relative to the matched `direct_llm`
+baseline. The paper reports effects that vary by model and task; it does not
+establish a universal penalty or identify one runtime mechanism as the cause.
+Read the signed gap:
 
-This is exactly why `direct_llm` is the reference line and not just another
-harness. The interesting quantity is the signed difference
-
-```
+```text
 harness_accuracy − direct_llm_accuracy
 ```
 
-which can be positive (the scaffold pays for itself) or negative (the scaffold
-taxes the model). Reporting an agent number without the matching `direct_llm`
-number hides which side of zero you are on.
+A negative gap is sometimes called an "agent scaffold tax". It is a descriptive
+accuracy difference for that configuration, not a monetary charge or a causal
+estimate of harness overhead. Compare resource use separately, with its coverage
+and timing limitations.
 
 ## Macro and micro studies
 
@@ -166,14 +162,13 @@ AlphaDiana supports two complementary modes of harness-aware study:
 
 - **Macro** — compare whole harness conditions (`direct_llm` vs `opencode` vs
   `openclaw` vs `zeroclaw`) on a fixed model and benchmark, then compare
-  end-to-end accuracy and cost. The harness-specific runtime and transport
+  end-to-end accuracy, recorded output-token use, and elapsed time. The harness-specific runtime and transport
   fields are part of each condition; keep shared budgets fixed and disclose the
   fields that cannot be identical.
 
 - **Micro** — compare a matched scaffold intervention (tool exposure, skill
   loading, memory behavior, and any associated prompt changes) against its
-  baseline condition. Micro studies need surgical control over the request
-  stream, which is what the proxies provide (below). The
+  baseline condition. Tool filtering uses request-stream controls; skill and memory conditions also require native loading, storage, and reuse policies. The
   [Tool / Skill / Memory axes](/docs/concepts/evaluation-axes) page covers the ablation
   design.
 
