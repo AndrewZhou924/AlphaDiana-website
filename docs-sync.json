@@ -1,7 +1,7 @@
 {
   "repository": "AndrewZhou924/AlphaDiana-dev",
-  "commit": "9dd7a7eb9485b49c1d452116cc06f9fee8111b3a",
-  "checked": "2026-10-23",
+  "commit": "4b24516701706628cbe202c842d3928f566c3f69",
+  "checked": "2026-10-25",
   "pages": [
     {
       "source": "docs/README.md",
@@ -111,17 +111,17 @@
     {
       "source": "docs/configuration/README.md",
       "page": "docs/configuration/index.md",
-      "source_sha256": "e4a566345470228b3795883372442e1746789b7cba884840ccd67364787f5b41"
+      "source_sha256": "00a5cec16628e1323152ad7f9e5385606b778594738bef5da60a70b7c8358b6a"
     },
     {
       "source": "docs/configuration/cli-and-overrides.md",
       "page": "docs/configuration/cli-and-overrides.md",
-      "source_sha256": "3b37676a8aa329b966d28297e38cb6763a878c9cd62107ca97cf1b7d9b7a50e8"
+      "source_sha256": "72e5bfa2a750208cc34cbdbe8e768d0811212c56991a027a7bacd14512b67919"
     },
     {
       "source": "docs/configuration/config-schema.md",
       "page": "docs/configuration/config-schema.md",
-      "source_sha256": "6ba40ebd678300bd30f7f4afd9d309b19b36576cbd77664e30ee604ce93d7be9"
+      "source_sha256": "a2f876b3ac1e851f66105f8775d23ab9d1787fcefbc1d150a1d161d33509f4de"
     },
     {
       "source": "docs/configuration/release-validation.md",
@@ -171,7 +171,7 @@
     {
       "source": "docs/getting-started/python-api.md",
       "page": "docs/getting-started/python-api.md",
-      "source_sha256": "7dd39e46ce91fd23afef82dc5a9e83e864567c434799dbfd7f2380b0b976326a"
+      "source_sha256": "9b41144138dad44491c913deee03cc9271943b831ca65bf2c4ce75d66f41c3cf"
     },
     {
       "source": "docs/getting-started/quick-start.md",
@@ -220,7 +220,7 @@
     }
   ],
   "editorial_overrides": [
-    "Onboarding follows the finalized README instead of the older DirectLLM-first guide.",
+    "Onboarding follows the finalized README with compute/analyzer commands; DirectLLM remains a separate baseline tutorial.",
     "Installation pins the development revision because the public mirror lacks the new API and example preset.",
     "Published scores remain sourced from arXiv v1, not the stale upstream results page.",
     "Companion-specific training guides are excluded from public website documentation.",

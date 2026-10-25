@@ -4,19 +4,15 @@ sidebar_position: 2
 
 # Installation
 
-:::note Version used by these examples
-
-These instructions follow the finalized development README at [`9dd7a7eb`](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/9dd7a7eb9485b49c1d452116cc06f9fee8111b3a/README.md). As checked on 23 October 2026, the public repository has not yet received the API factories and example YAML used here. Use the development checkout below; access to that repository is required.
-
+:::note Compatible source revision
+These examples follow the finalized [README at `4b245167`](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/4b24516701706628cbe202c842d3928f566c3f69/README.md), checked on 25 October 2026. The public mirror still lacks the API factories and example YAML used here. Use the development checkout below; repository access is required.
 :::
 
 
-AlphaDiana provides two ways to run experiments: the **CLI** and the **Python API**.
-Both examples below run **OpenCode on 3 AIME 2026 tasks**, with one sample per task, then analyze the saved results.
+Run **OpenCode on 3 AIME 2026 tasks**, once per task, via the **CLI** or **Python API**. Analyze the saved results.
 
-**Requires:** uv, Python ≥ 3.10, Podman, and an OpenAI-compatible model endpoint.
-
-Complete steps 1–3, then choose the [CLI](/docs/getting-started/quick-start#cli) or [Python API](/docs/getting-started/quick-start#python-api) workflow.
+You need uv, Python ≥ 3.10, Podman, and an OpenAI-compatible model endpoint.
+Complete steps 1–3, then choose the [CLI](/docs/getting-started/quick-start#cli) or [Python API](/docs/getting-started/quick-start#python-api) in step 4.
 
 ### 1. Install
 
@@ -25,7 +21,7 @@ Create an isolated Python environment and install the execution and analysis dep
 ```bash
 git clone https://github.com/AndrewZhou924/AlphaDiana-dev.git
 cd AlphaDiana-dev
-git checkout 9dd7a7eb9485b49c1d452116cc06f9fee8111b3a
+git checkout 4b24516701706628cbe202c842d3928f566c3f69
 uv venv --python 3.10 .venv
 source .venv/bin/activate
 uv pip install -e '.[analysis,benchmarks,agents]'
@@ -52,12 +48,10 @@ podman build \
   alphadiana/harness/opencode/deploy
 ```
 
-The image contains OpenCode **1.3.2** and task tools. Both examples use this image to run OpenCode. [Podman setup →](/docs/benchmarks/podman)
+Both workflows use this image, which includes OpenCode **1.3.2** and task tools. [Podman&nbsp;setup&nbsp;guide](/docs/benchmarks/podman)
 
 
-## Next steps
-
-Choose the [CLI or Python API workflow](/docs/getting-started/quick-start#cli). For other runtimes, consult the [harness guides](/docs/harnesses/) and [sandbox requirements](/docs/architecture/sandboxes). A hosted endpoint does not require a local GPU. The [DirectLLM baseline](/docs/getting-started/direct-llm-baseline) does not require a task container.
+Choose the [CLI or Python workflow](/docs/getting-started/quick-start#4-run-and-analyze-with-the-cli-or-python-api).
 
 ## Optional ROCK service installation
 

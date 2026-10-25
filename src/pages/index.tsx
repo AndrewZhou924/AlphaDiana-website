@@ -5,27 +5,49 @@ import TabItem from '@theme/TabItem';
 import InstallBox from '@site/src/components/InstallBox';
 import Scoreboard from '@site/src/components/Scoreboard';
 import Layout from '@theme/Layout';
+import Head from '@docusaurus/Head';
 import Link from '@docusaurus/Link';
 import React, { ReactNode } from 'react';
 import styles from './index.module.css';
 
-const installCommand = "git clone https://github.com/AndrewZhou924/AlphaDiana-dev.git\ncd AlphaDiana-dev\ngit checkout 9dd7a7eb9485b49c1d452116cc06f9fee8111b3a\nuv venv --python 3.10 .venv\nsource .venv/bin/activate\nuv pip install -e '.[analysis,benchmarks,agents]'";
+const installCommand = "git clone https://github.com/AndrewZhou924/AlphaDiana-dev.git\ncd AlphaDiana-dev\ngit checkout 4b24516701706628cbe202c842d3928f566c3f69\nuv venv --python 3.10 .venv\nsource .venv/bin/activate\nuv pip install -e '.[analysis,benchmarks,agents]'";
 const endpointCommand = "export OPENAI_BASE_URL=\"https://your-provider.example/v1\"\nexport OPENAI_API_KEY=\"your-api-key\"\nexport OPENAI_MODEL_NAME=\"Qwen/Qwen3.5-27B\"";
 const imageCommand = "podman build \\\n  -f alphadiana/harness/opencode/deploy/Containerfile.podman-controller \\\n  -t localhost/alphadiana-opencode-podman:latest \\\n  alphadiana/harness/opencode/deploy";
-const cliCommand = "alphadiana validate configs/examples/aime2026_opencode.yaml\nalphadiana run configs/examples/aime2026_opencode.yaml";
-const reportCommand = "alphadiana report results/";
-const exportCommand = "python - <<'PY'\nimport alphadiana as ad\n\nad.analyzer(\"results/aime_opencode_cli.jsonl\").export(\"figures/aime_opencode_cli\")\nPY";
-const apiCommand = "import alphadiana as ad\n\nagent = ad.agent(\n    \"opencode\", version=\"1.3.2\", controller_mode=\"podman\",\n    controller_image=\"localhost/alphadiana-opencode-podman:latest\",\n)\ndata = ad.dataset(\"MathArena/aime_2026\", benchmark=\"aime\", max_tasks=3)\nscorer = ad.scorer.create(\"numeric\")\n\nartifacts = ad.runner(\n    run_id=\"aime_opencode_api\", num_samples=1, task_retries=0, strict_report=True,\n).compute(agent=agent, data=data, scorer=scorer)";
-const apiExportCommand = "ad.analyzer(artifacts).export(\"figures/aime_opencode_api\")";
+const cliCommand = "alphadiana validate configs/examples/aime2026_opencode.yaml\nalphadiana compute configs/examples/aime2026_opencode.yaml\nalphadiana analyzer results/aime_opencode_cli.jsonl --output-dir figures/aime_opencode_cli";
+const apiCommand = "import alphadiana as ad\n\nagent = ad.agent(\n    \"opencode\", version=\"1.3.2\", controller_mode=\"podman\",\n    controller_image=\"localhost/alphadiana-opencode-podman:latest\",\n)\ndata = ad.dataset(\"MathArena/aime_2026\", benchmark=\"aime\", max_tasks=3)\nscorer = ad.scorer.create(\"numeric\")\n\nartifacts = ad.runner(\n    run_id=\"aime_opencode_api\", num_samples=1, task_retries=0, strict_report=True,\n).compute(agent=agent, data=data, scorer=scorer)\n\nad.analyzer(artifacts).export(\"figures/aime_opencode_api\")";
 
-export default function Home(): ReactNode {
+export function ResearchHome({paperLayout = false}: {paperLayout?: boolean}): ReactNode {
   return (
     <Layout
       title="AlphaDiana"
       description={productTagline}>
+      {paperLayout && <Head><meta name="robots" content="noindex, nofollow" /></Head>}
       <main>
-        <div className={styles.container}>
-          <Hero
+        <div className={`${styles.container} ${paperLayout ? styles.paper : ''}`}>
+          {paperLayout ? <>
+            <div className={styles.previewBar}>Paper-page layout preview <Link to="/">Compare current layout ↗</Link></div>
+            <header className={styles.paperHeader}>
+              <p className={styles.paperEyebrow}>arXiv · October 2026</p>
+              <h1><span>AlphaDiana</span>{paperTitle.replace('AlphaDiana: ', '')}</h1>
+              <p className={styles.paperDeck}>Compare scores and traces on verifiable reasoning tasks.<br />Test tools, skills and memory.</p>
+              <details className={styles.authors}>
+                <summary>Authors</summary>
+                <p>{paperBibtex.match(/author=\{([^}]+)\}/)?.[1].split(' and ').join(' · ')}</p>
+              </details>
+              <div className={styles.paperLinks}>
+                <a href={paperUrl}>Paper ↗</a>
+                <a href={codeUrl}>Code ↗</a>
+                <Link to="/docs/intro">Docs ↗</Link>
+                <a href="#quick-start">Quick Start ↓</a>
+              </div>
+            </header>
+            <nav className={styles.sectionNav} aria-label="On this page">
+              <a href="#positioning">Positioning</a><a href="#why-alphadiana">Motivation</a>
+              <a href="#scope">Scope</a><a href="#quick-start">Quick Start</a>
+              <a href="#documentation">Docs</a><a href="#citation">Citation</a>
+              <a href="#related-project">Related project</a>
+            </nav>
+          </> : <Hero
             title="AlphaDiana"
             description={productTagline}
             primaryButtonText="Get Started"
@@ -34,14 +56,13 @@ export default function Home(): ReactNode {
             secondaryButtonLink={codeUrl}
             paperButtonText="Paper"
             paperButtonLink={paperUrl}
-          />
+          />}
 
           <section className={styles.introSection}>
             <div className={styles.introContent}>
               <p>
-                Compare scores, inspect trajectories, and test tools, skills and memory.
-                AlphaDiana runs configured agents against benchmarks, scores their outputs, and saves the
-                evidence needed to analyze each attempt.
+                Compare scores and traces on verifiable reasoning tasks. Test tools, skills and memory.
+                AlphaDiana runs agents on benchmarks, scores their answers and saves execution evidence for later analysis.
               </p>
             </div>
           </section>
@@ -65,9 +86,9 @@ export default function Home(): ReactNode {
             <div className={styles.architectureFigure}>
               <h2>Why AlphaDiana?</h2>
               <ul className={styles.whyList}>
-                <li><strong>Compare agents:</strong> run different model–harness combinations on the same tasks and compare their scores and resource use.</li>
-                <li><strong>Inspect failures:</strong> connect wrong answers to execution status, tool interactions and action patterns in saved trajectories.</li>
-                <li><strong>Test components:</strong> change tools, skills or memory settings and compare outcomes under recorded task and budget settings.</li>
+                <li><strong>Compare agents:</strong> compare scores and resource use across model–harness combinations on the same tasks.</li>
+                <li><strong>Inspect failures:</strong> trace wrong answers through execution status, tool interactions and saved action patterns.</li>
+                <li><strong>Test components:</strong> change tools, skills or memory and compare outcomes under recorded tasks and budgets.</li>
               </ul>
               <figure>
                 <img src="/img/readme/alphadiana-overview.png" alt="README overview of execution evidence, scores, failure labels, resource usage and component comparisons" loading="lazy" />
@@ -96,19 +117,20 @@ export default function Home(): ReactNode {
               <h2>Run OpenCode on three AIME 2026 tasks</h2>
               <p>Choose CLI or Python API after the shared setup. Both use one sample per task, no task retries, and strict reporting, then analyze saved results. Requires uv, Python ≥ 3.10, Podman and an OpenAI-compatible endpoint.</p>
               <p className={styles.versionNote}>These examples follow the finalized development README. The public mirror has not yet received this API and preset; use the pinned development checkout below. See the <Link to="/docs/getting-started/quick-start">complete guide</Link> for version and runtime requirements. This is a pipeline check, not the paper's full protocol.</p>
+              <details className={styles.setupDetails} open={!paperLayout}>
+              <summary>Shared setup · environment, endpoint and Podman image</summary>
               <h3>1. Install</h3><InstallBox command={installCommand} />
               <h3>2. Set up the model endpoint</h3><InstallBox command={endpointCommand} />
               <h3>3. Build the OpenCode controller image</h3><InstallBox command={imageCommand} />
+              </details>
+              <h3>4. Run and analyze</h3>
               <Tabs groupId="quickstart-interface">
                 <TabItem value="cli" label="CLI" default>
-                  <h3>Configure and run</h3><InstallBox command={cliCommand} />
-                  <h3>Analyze outputs</h3><InstallBox command={reportCommand} />
-                  <InstallBox command={exportCommand} />
+                  <h3>Compute, analyze and export</h3><InstallBox command={cliCommand} />
                   <p>Saved attempts: <code>results/aime_opencode_cli.jsonl</code>. Exports: <code>figures/aime_opencode_cli/</code>.</p>
                 </TabItem>
                 <TabItem value="python" label="Python API">
-                  <h3>Configure and run</h3><InstallBox command={apiCommand} language="python" />
-                  <h3>Analyze outputs</h3><InstallBox command={apiExportCommand} language="python" />
+                  <h3>Compute, analyze and export</h3><InstallBox command={apiCommand} language="python" />
                   <p>Saved attempts: <code>results/aime_opencode_api.jsonl</code>. Exports: <code>figures/aime_opencode_api/</code>.</p>
                 </TabItem>
               </Tabs>
@@ -131,7 +153,7 @@ export default function Home(): ReactNode {
             </figure>
           </section>
 
-          <section className={styles.architectureBand}>
+          <section id="documentation" className={styles.architectureBand}>
             <figure className={styles.architectureFigure}>
               <p className={styles.kicker}>Documentation</p>
               <h2>Configure, execute, save evidence, analyze</h2>
@@ -154,15 +176,16 @@ export default function Home(): ReactNode {
 
           <Scoreboard />
 
-          <section className={styles.citationSection}>
+          <section id="citation" className={styles.citationSection}>
             <div className={styles.citationInner}>
               <p className={styles.kicker}>Citation</p>
               <p><a href={paperUrl}>{paperTitle}</a>. arXiv:2610.20675, published 14 October 2026.</p>
               <p>If you find the project helpful, please cite:</p>
               <pre className={styles.citationBib}>{paperBibtex}</pre>
-              <p>We thank the contributors, collaborators and open-source communities behind{' '}
+              <p>We thank contributors, collaborators and open-source communities behind{' '}
                 <a href="https://github.com/openclaw/openclaw">OpenClaw</a>,{' '}
-                <a href="https://github.com/alibaba/ROCK">ROCK</a> and the other tools that support AlphaDiana.</p>
+                <a href="https://github.com/alibaba/ROCK">ROCK</a> and other tools.</p>
+              <h2 id="related-project">Related project</h2>
               <p>Please also check out <a href="https://alphaapollo.org/">AlphaApollo</a>, our system for deep
                 agentic reasoning (<a href="https://arxiv.org/abs/2510.06261">arXiv</a>,{' '}
                 <a href="https://github.com/tmlr-group/AlphaApollo">GitHub</a>).</p>
@@ -172,4 +195,8 @@ export default function Home(): ReactNode {
       </main>
     </Layout>
   );
+}
+
+export default function Home(): ReactNode {
+  return <ResearchHome />;
 }

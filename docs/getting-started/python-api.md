@@ -15,7 +15,7 @@ Install with `uv pip install -e '.[analysis,benchmarks,agents]'` in the environm
 described in [Installation](/docs/getting-started/installation). Set `OPENAI_BASE_URL`,
 `OPENAI_API_KEY`, and `OPENAI_MODEL_NAME` for your existing model service.
 This is the same example as the repository README. It uses one sample per task,
-the default `results/` directory, no task retries, and strict reporting. Complete the [shared setup](/docs/getting-started/quick-start#1-install) first.
+the default `results/` directory, no task retries, and strict reporting.
 
 ### Build the OpenCode controller image
 
@@ -28,7 +28,7 @@ podman build \
   alphadiana/harness/opencode/deploy
 ```
 
-This builds a local container image from [`Containerfile.podman-controller`](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/9dd7a7eb9485b49c1d452116cc06f9fee8111b3a/alphadiana/harness/opencode/deploy/Containerfile.podman-controller). The recipe starts from Ubuntu 22.04 and installs Node.js 22, OpenCode **1.3.2**, and task tools. The final directory supplies the build context; `-t` assigns the image name `localhost/alphadiana-opencode-podman:latest`.
+This builds a local container image from [`Containerfile.podman-controller`](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/4b24516701706628cbe202c842d3928f566c3f69/alphadiana/harness/opencode/deploy/Containerfile.podman-controller). The recipe starts from Ubuntu 22.04 and installs Node.js 22, OpenCode **1.3.2**, and task tools. The final directory supplies the build context; `-t` assigns the image name `localhost/alphadiana-opencode-podman:latest`.
 
 Use that same image name in `controller_image` below. OpenCode runs inside this controller and calls the configured model endpoint for inference. See the [Podman setup guide](/docs/benchmarks/podman) for runtime checks.
 
@@ -37,7 +37,6 @@ Use that same image name in `controller_image` below. OpenCode runs inside this 
 ```python
 import alphadiana as ad
 
-# Select the agent harness and the problems to evaluate.
 agent = ad.agent(
     "opencode", version="1.3.2", controller_mode="podman",
     controller_image="localhost/alphadiana-opencode-podman:latest",
@@ -45,14 +44,10 @@ agent = ad.agent(
 data = ad.dataset("MathArena/aime_2026", benchmark="aime", max_tasks=3)
 scorer = ad.scorer.create("numeric")
 
-# Run the agent and save its answers, scores, and execution traces.
 artifacts = ad.runner(
     run_id="aime_opencode_api", num_samples=1, task_retries=0, strict_report=True,
-).compute(
-    agent=agent, data=data, scorer=scorer,
-)
+).compute(agent=agent, data=data, scorer=scorer)
 
-# Analyze the saved run and export tables and figures.
 ad.analyzer(artifacts).export("figures/aime_opencode_api")
 ```
 
@@ -75,10 +70,10 @@ PNG is a review preview. All formats retain the same measured data.
 
 For the sandbox-free baseline, replace the agent with
 `ad.agent("direct_llm", version="1.0")` and choose a separate run ID.
-To use the DirectLLM Qwen preset, use its checked-in YAML through the CLI;
-the preset specifies sampling, thinking, and logprob options beyond API defaults.
+Use checked-in YAML presets through the CLI when reproducing sampling, thinking,
+and logprob settings beyond the API defaults.
 
-The [API acceptance configurations](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/9dd7a7eb9485b49c1d452116cc06f9fee8111b3a/configs/acceptance/api/README.md) provide
+The [API acceptance configurations](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/4b24516701706628cbe202c842d3928f566c3f69/configs/acceptance/api/README.md) provide
 28 explicit benchmark/harness combinations. Execute a configuration through the
 existing CLI or validation driver; reopen and analyze its artifacts separately.
 Model service setup and container installation remain explicit prerequisites.
@@ -94,6 +89,24 @@ scripted answers. It checks execution, persistence, reopening, rescoring without
 another solver call, rerunning without replacing earlier evidence, and PDF/SVG/PNG
 exports. Answers, usage and probabilities are synthetic; this does not validate a
 real model, the seven-benchmark matrix, native containers or semantic annotations.
+
+## CLI equivalents
+
+The CLI uses the same `compute` and `analyzer` names:
+
+```bash
+alphadiana compute configs/examples/aime2026_opencode.yaml
+alphadiana analyzer results/aime_opencode_cli.jsonl --output-dir figures/aime_opencode_cli
+```
+
+The YAML component sections are `agent`, `data`, `scorer` and optional `env`,
+matching `compute(agent=..., data=..., scorer=...)` and `runner(env=...)`.
+Run controls stay at the YAML top level or on `ad.runner(...)`.
+Legacy `run`, `benchmark` and `sandbox` spellings remain supported.
+
+For structured measurements only, omit `--output-dir`, equivalent to `ad.analyzer(...).compute()`.
+For comparisons, pass multiple JSONL paths, equivalent to a list of sources in Python.
+Use `--judge` for `judge=True` and `--formats svg` for `formats=("svg",)`.
 
 ## Explicit composition
 
@@ -128,7 +141,7 @@ strict mode, a partially successful run remains inspectable through `Artifacts`.
 ```python
 from alphadiana.results.artifacts import Artifacts
 
-saved = Artifacts("results/aime_opencode_api.jsonl")
+saved = Artifacts("results/aime_opencode_demo.jsonl")
 all_attempts = saved.records(latest=False)
 rescored = saved.rescore(ad.scorer.create("numeric", tolerance=1e-6))
 ```
@@ -237,7 +250,7 @@ plugin remains available with its distinct equal-call, fixed-width-bin statistic
 
 ## Optional model judgments
 
-Install `uv pip install -e '.[judges]'` for model annotations and the `llm_judge` scorer.
+Install `pip install -e '.[judges]'` for model annotations and the `llm_judge` scorer.
 Execution and analysis may use separate models, endpoints and credentials.
 Configure the execution provider through `OPENAI_BASE_URL`, `OPENAI_API_KEY` and
 `OPENAI_MODEL_NAME` (or an explicit agent `model`). For independent analysis:
@@ -305,7 +318,7 @@ The normal case makes one judge request per trajectory, not one per action.
 No `action_targets` artifact or rule-based split is required.
 
 The classifier reuses the definitions and operational rules from the canonical
-[human protocol](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/9dd7a7eb9485b49c1d452116cc06f9fee8111b3a/alphadiana/analysis/actions/action_prompt.md), including the priority
+[human protocol](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/4b24516701706628cbe202c842d3928f566c3f69/alphadiana/analysis/actions/action_prompt.md), including the priority
 Finalization > Tool Use > Verification > Reasoning > Planning > Understanding
 between functions actually evidenced by a span. It does not use keyword labels.
 The model chooses ranges inside logged text; Python validates ordered, complete,

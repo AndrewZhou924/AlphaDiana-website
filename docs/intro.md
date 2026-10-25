@@ -3,11 +3,11 @@ sidebar_position: 1
 slug: /intro
 ---
 
-# AlphaDiana: Measure LLM agents on verifiable reasoning tasks
+# AlphaDiana: Measure LLM agents
 
-Compare scores, inspect trajectories, and test tools, skills and memory.
+Compare scores and traces on verifiable reasoning tasks. Test tools, skills and memory.
 
-AlphaDiana runs configured agents against benchmarks, scores their outputs, and saves the evidence needed to analyze each attempt.
+AlphaDiana runs agents on benchmarks, scores their answers and saves execution evidence for later analysis.
 
 
 ## How it works

@@ -7,8 +7,8 @@ datasets, run artifacts, credentials, or the dashboard backend.
 ## Published content
 
 Product wording, citation, quick start and Python API examples follow
-[AlphaDiana-dev README at `9dd7a7eb`](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/9dd7a7eb9485b49c1d452116cc06f9fee8111b3a/README.md),
-checked on 23 October 2026. `src/data/publication.ts` stores the shared citation
+[AlphaDiana-dev README at `4b245167`](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/4b24516701706628cbe202c842d3928f566c3f69/README.md),
+checked on 25 October 2026. `src/data/publication.ts` stores the shared citation
 verbatim, including author order. The public `tmlr-group/AlphaDiana` README was
 also checked, but still differs; do not mix its old installation/API instructions
 with the development examples. Homepage GitHub and setup links name the matching
@@ -65,3 +65,7 @@ Keep this repository limited to the files required to build the public site.
 Do not commit `.env` files, API keys, local run outputs, datasets, experiment
 artifacts, paper-review material, or backend services. Values shown in command
 examples must remain environment-variable placeholders rather than credentials.
+
+## Paper-page layout preview
+
+`/paper-preview` presents the same live homepage content in a research-paper layout, with a centered paper header, author list, compact resource links, section navigation and quieter figure presentation. The shared setup is expandable; both execution interfaces remain accessible. The default homepage and Docs routes remain available for comparison. See [design references](DESIGN-REFERENCES.md) for the template research and rationale.
