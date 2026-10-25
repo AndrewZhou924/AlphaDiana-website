@@ -3,7 +3,9 @@ sidebar_position: 1
 slug: /intro
 ---
 
-# AlphaDiana: Measure LLM agents
+# AlphaDiana: A Measurement System for Agents in Verifiable Reasoning Tasks
+
+[**Paper**](https://arxiv.org/abs/2610.20675) — More experiments and analysis of agent behavior, components and resource use.
 
 Compare scores and traces on verifiable reasoning tasks. Test tools, skills and memory.
 

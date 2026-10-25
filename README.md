@@ -7,7 +7,7 @@ datasets, run artifacts, credentials, or the dashboard backend.
 ## Published content
 
 Product wording, citation, quick start and Python API examples follow
-[AlphaDiana-dev README at `4b245167`](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/4b24516701706628cbe202c842d3928f566c3f69/README.md),
+[AlphaDiana-dev README at `5721533`](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/5721533be9c1d66a2e37c6dadc99b0c6ce284c90/README.md),
 checked on 25 October 2026. `src/data/publication.ts` stores the shared citation
 verbatim, including author order. The public `tmlr-group/AlphaDiana` README was
 also checked, but still differs; do not mix its old installation/API instructions

@@ -28,7 +28,7 @@ podman build \
   alphadiana/harness/opencode/deploy
 ```
 
-This builds a local container image from [`Containerfile.podman-controller`](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/4b24516701706628cbe202c842d3928f566c3f69/alphadiana/harness/opencode/deploy/Containerfile.podman-controller). The recipe starts from Ubuntu 22.04 and installs Node.js 22, OpenCode **1.3.2**, and task tools. The final directory supplies the build context; `-t` assigns the image name `localhost/alphadiana-opencode-podman:latest`.
+This builds a local container image from [`Containerfile.podman-controller`](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/5721533be9c1d66a2e37c6dadc99b0c6ce284c90/alphadiana/harness/opencode/deploy/Containerfile.podman-controller). The recipe starts from Ubuntu 22.04 and installs Node.js 22, OpenCode **1.3.2**, and task tools. The final directory supplies the build context; `-t` assigns the image name `localhost/alphadiana-opencode-podman:latest`.
 
 Use that same image name in `controller_image` below. OpenCode runs inside this controller and calls the configured model endpoint for inference. See the [Podman setup guide](/docs/benchmarks/podman) for runtime checks.
 
@@ -73,7 +73,7 @@ For the sandbox-free baseline, replace the agent with
 Use checked-in YAML presets through the CLI when reproducing sampling, thinking,
 and logprob settings beyond the API defaults.
 
-The [API acceptance configurations](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/4b24516701706628cbe202c842d3928f566c3f69/configs/acceptance/api/README.md) provide
+The [API acceptance configurations](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/5721533be9c1d66a2e37c6dadc99b0c6ce284c90/configs/acceptance/api/README.md) provide
 28 explicit benchmark/harness combinations. Execute a configuration through the
 existing CLI or validation driver; reopen and analyze its artifacts separately.
 Model service setup and container installation remain explicit prerequisites.
@@ -318,7 +318,7 @@ The normal case makes one judge request per trajectory, not one per action.
 No `action_targets` artifact or rule-based split is required.
 
 The classifier reuses the definitions and operational rules from the canonical
-[human protocol](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/4b24516701706628cbe202c842d3928f566c3f69/alphadiana/analysis/actions/action_prompt.md), including the priority
+[human protocol](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/5721533be9c1d66a2e37c6dadc99b0c6ce284c90/alphadiana/analysis/actions/action_prompt.md), including the priority
 Finalization > Tool Use > Verification > Reasoning > Planning > Understanding
 between functions actually evidenced by a span. It does not use keyword labels.
 The model chooses ranges inside logged text; Python validates ordered, complete,

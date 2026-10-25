@@ -5,14 +5,13 @@ sidebar_position: 3
 # Quick Start
 
 :::note Compatible source revision
-These examples follow the finalized [README at `4b245167`](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/4b24516701706628cbe202c842d3928f566c3f69/README.md), checked on 25 October 2026. The public mirror still lacks the API factories and example YAML used here. Use the development checkout below; repository access is required.
+These examples follow the finalized [README at `5721533`](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/5721533be9c1d66a2e37c6dadc99b0c6ce284c90/README.md), checked on 25 October 2026. The public mirror still lacks the API factories and example YAML used here. Use the development checkout below; repository access is required.
 :::
 
 
-Run **OpenCode on 3 AIME 2026 tasks**, once per task, via the **CLI** or **Python API**. Analyze the saved results.
+The examples use **Qwen3.5-27B** as the model and **OpenCode 1.3.2** as the harness. Both the **CLI** and **Python API** run **3 AIME 2026 tasks**, with one sample per task, then analyze the saved results.
 
 You need uv, Python ≥ 3.10, Podman, and an OpenAI-compatible model endpoint.
-Complete steps 1–3, then choose the [CLI](#cli) or [Python API](#python-api) in step 4.
 
 ### 1. Install
 
@@ -21,7 +20,7 @@ Create an isolated Python environment and install the execution and analysis dep
 ```bash
 git clone https://github.com/AndrewZhou924/AlphaDiana-dev.git
 cd AlphaDiana-dev
-git checkout 4b24516701706628cbe202c842d3928f566c3f69
+git checkout 5721533be9c1d66a2e37c6dadc99b0c6ce284c90
 uv venv --python 3.10 .venv
 source .venv/bin/activate
 uv pip install -e '.[analysis,benchmarks,agents]'
@@ -56,7 +55,7 @@ Use `agent`, `data`, `scorer` and optional `env` with either interface. `compute
 
 #### CLI
 
-The CLI uses [`configs/examples/aime2026_opencode.yaml`](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/4b24516701706628cbe202c842d3928f566c3f69/configs/examples/aime2026_opencode.yaml). It matches the Python example's `agent`, `data` and `scorer`, with the endpoint from step 2 and image from step 3.
+The CLI uses [`configs/examples/aime2026_opencode.yaml`](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/5721533be9c1d66a2e37c6dadc99b0c6ce284c90/configs/examples/aime2026_opencode.yaml). It matches the Python example's `agent`, `data` and `scorer`, with the endpoint from step 2 and image from step 3.
 
 Validate the config, compute the scored artifacts, then analyze and export them:
 
@@ -78,7 +77,7 @@ Run `python` from the repository root in the same terminal, then execute the exa
 
 ![AlphaDiana functional interface: agent, dataset, environment, scorer, runner, and analysis composition.](/img/paper/api.png)
 
-*Functional interface: experiment components and analysis outputs. [Figure sources](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/4b24516701706628cbe202c842d3928f566c3f69/docs/assets/README.md).*
+*Functional interface: experiment components and analysis outputs. [Figure sources](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/5721533be9c1d66a2e37c6dadc99b0c6ce284c90/docs/assets/README.md).*
 
 ```python
 import alphadiana as ad

@@ -5,7 +5,7 @@ sidebar_position: 2
 # Installation
 
 :::note Compatible source revision
-These examples follow the finalized [README at `4b245167`](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/4b24516701706628cbe202c842d3928f566c3f69/README.md), checked on 25 October 2026. The public mirror still lacks the API factories and example YAML used here. Use the development checkout below; repository access is required.
+These examples follow the finalized [README at `5721533`](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/5721533be9c1d66a2e37c6dadc99b0c6ce284c90/README.md), checked on 25 October 2026. The public mirror still lacks the API factories and example YAML used here. Use the development checkout below; repository access is required.
 :::
 
 
@@ -21,7 +21,7 @@ Create an isolated Python environment and install the execution and analysis dep
 ```bash
 git clone https://github.com/AndrewZhou924/AlphaDiana-dev.git
 cd AlphaDiana-dev
-git checkout 4b24516701706628cbe202c842d3928f566c3f69
+git checkout 5721533be9c1d66a2e37c6dadc99b0c6ce284c90
 uv venv --python 3.10 .venv
 source .venv/bin/activate
 uv pip install -e '.[analysis,benchmarks,agents]'

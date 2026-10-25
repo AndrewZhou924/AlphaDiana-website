@@ -11,6 +11,6 @@ export const paperBibtex = `@article{zhou2026alphadiana,
 }`;
 
 // Product wording, examples and citation follow the development README checked on 25 October 2026.
-export const readmeUrl = 'https://github.com/AndrewZhou924/AlphaDiana-dev/blob/4b24516701706628cbe202c842d3928f566c3f69/README.md';
+export const readmeUrl = 'https://github.com/AndrewZhou924/AlphaDiana-dev/blob/5721533be9c1d66a2e37c6dadc99b0c6ce284c90/README.md';
 export const codeUrl = 'https://github.com/AndrewZhou924/AlphaDiana-dev';
-export const productTagline = 'Measure LLM agents.';
+export const productTagline = 'A Measurement System for Agents in Verifiable Reasoning Tasks';

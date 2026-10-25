@@ -10,7 +10,7 @@ import Link from '@docusaurus/Link';
 import React, { ReactNode } from 'react';
 import styles from './index.module.css';
 
-const installCommand = "git clone https://github.com/AndrewZhou924/AlphaDiana-dev.git\ncd AlphaDiana-dev\ngit checkout 4b24516701706628cbe202c842d3928f566c3f69\nuv venv --python 3.10 .venv\nsource .venv/bin/activate\nuv pip install -e '.[analysis,benchmarks,agents]'";
+const installCommand = "git clone https://github.com/AndrewZhou924/AlphaDiana-dev.git\ncd AlphaDiana-dev\ngit checkout 5721533be9c1d66a2e37c6dadc99b0c6ce284c90\nuv venv --python 3.10 .venv\nsource .venv/bin/activate\nuv pip install -e '.[analysis,benchmarks,agents]'";
 const endpointCommand = "export OPENAI_BASE_URL=\"https://your-provider.example/v1\"\nexport OPENAI_API_KEY=\"your-api-key\"\nexport OPENAI_MODEL_NAME=\"Qwen/Qwen3.5-27B\"";
 const imageCommand = "podman build \\\n  -f alphadiana/harness/opencode/deploy/Containerfile.podman-controller \\\n  -t localhost/alphadiana-opencode-podman:latest \\\n  alphadiana/harness/opencode/deploy";
 const cliCommand = "alphadiana validate configs/examples/aime2026_opencode.yaml\nalphadiana compute configs/examples/aime2026_opencode.yaml\nalphadiana analyzer results/aime_opencode_cli.jsonl --output-dir figures/aime_opencode_cli";
@@ -60,6 +60,7 @@ export function ResearchHome({paperLayout = false}: {paperLayout?: boolean}): Re
 
           <section className={styles.introSection}>
             <div className={styles.introContent}>
+              <p><a href={paperUrl}>Paper</a> — More experiments and analysis of agent behavior, components and resource use.</p>
               <p>
                 Compare scores and traces on verifiable reasoning tasks. Test tools, skills and memory.
                 AlphaDiana runs agents on benchmarks, scores their answers and saves execution evidence for later analysis.
@@ -115,7 +116,7 @@ export function ResearchHome({paperLayout = false}: {paperLayout?: boolean}): Re
             <div className={styles.quickstartContent}>
               <p className={styles.kicker}>Quick Start</p>
               <h2>Run OpenCode on three AIME 2026 tasks</h2>
-              <p>Choose CLI or Python API after the shared setup. Both use one sample per task, no task retries, and strict reporting, then analyze saved results. Requires uv, Python ≥ 3.10, Podman and an OpenAI-compatible endpoint.</p>
+              <p>The examples use Qwen3.5-27B as the model and OpenCode 1.3.2 as the harness. Both CLI and Python API run three AIME 2026 tasks, with one sample per task, then analyze saved results. No task retries; strict reporting is enabled. Requires uv, Python ≥ 3.10, Podman and an OpenAI-compatible endpoint.</p>
               <p className={styles.versionNote}>These examples follow the finalized development README. The public mirror has not yet received this API and preset; use the pinned development checkout below. See the <Link to="/docs/getting-started/quick-start">complete guide</Link> for version and runtime requirements. This is a pipeline check, not the paper's full protocol.</p>
               <details className={styles.setupDetails} open={!paperLayout}>
               <summary>Shared setup · environment, endpoint and Podman image</summary>
@@ -158,10 +159,16 @@ export function ResearchHome({paperLayout = false}: {paperLayout?: boolean}): Re
               <p className={styles.kicker}>Documentation</p>
               <h2>Configure, execute, save evidence, analyze</h2>
               <p className={styles.flowLead}>
-                Configuration selects the tasks, agents, environments, and scorers. The runner allocates sessions,
-                calls native harness runtimes, and saves execution artifacts and scorer judgments. The analyzer
-                uses normalized traces and outcome records to compare correctness, behavior, and resource use.
+                AlphaDiana connects experiment setup, execution and analysis through four stages: configure;
+                execute and score; save evidence; analyze and export.
               </p>
+              <ol>
+                <li><strong>Configure:</strong> select tasks, a model and harness, execution environments, a scorer and budgets.</li>
+                <li><strong>Execute &amp; score:</strong> the runner manages sessions; the harness runs the agent; the scorer evaluates answers.</li>
+                <li><strong>Save evidence:</strong> retain scores, execution status, outputs, traces and resource measurements in result records.</li>
+                <li><strong>Analyze &amp; export:</strong> reopen those records to compare runs, inspect behavior and produce tables and figures.</li>
+              </ol>
+              <h3>AlphaDiana system architecture</h3>
               <img
                 src="/img/paper/system.png"
                 alt="AlphaDiana architecture from experiment configuration through benchmark, agent, environment, scorer, result store, and analysis"
