@@ -1,25 +1,16 @@
+import { paperVersionUrl } from '@site/src/data/publication';
 import React, { useState } from 'react';
 import clsx from 'clsx';
 import styles from './styles.module.css';
 
-/**
- * Scoreboard for AlphaDiana's main result.
- *
- * AlphaDiana's thesis is harness-aware evaluation: an agent is a model-harness
- * system, and the same harness can help one model while hurting another. This
- * board stages selected rows from the paper's main result: the Direct
- * (no-harness) baseline vs. open harnesses, with green/red deltas marking
- * where harnessing improves or degrades the base model.
- *
- * Source: AlphaDiana (NeurIPS 2026), Table 1, "End-to-end performance of
- * model-harness systems on verifiable reasoning tasks." All values are % (higher
- * is better). AIME 26 reports Pass@4 / Avg@4; other benchmarks report Avg@1.
+/** Values transcribed from Figure 5, arXiv:2610.20675v1, page 6.
+ * AIME uses Pass@4 and Avg@4; other answer-based benchmarks use Avg@1.
+ * Deltas are computed from the displayed, one-decimal paper values.
  */
 
 interface Row {
   harness: string;
   vals: number[];
-  deltas: number[] | null; // null for the Direct baseline
 }
 
 interface Model {
@@ -46,10 +37,10 @@ const models: Model[] = [
     verdict: 'hurts',
     takeaway: 'Direct inference leads every harness row in this selected comparison.',
     rows: [
-      { harness: 'Direct', vals: [58.3, 23.0, 81.3, 96.7, 89.2, 73.4], deltas: null },
-      { harness: 'OpenClaw', vals: [20.3, 13.4, 66.2, 83.3, 64.2, 68.3], deltas: [-38.0, -9.6, -15.1, -13.4, -25.0, -5.1] },
-      { harness: 'ZeroClaw', vals: [17.5, 15.0, 77.8, 86.7, 66.7, 67.2], deltas: [-40.8, -8.0, -3.5, -10.0, -22.5, -6.2] },
-      { harness: 'OpenCode', vals: [15.8, 13.9, 73.2, 86.7, 69.2, 69.4], deltas: [-42.5, -9.1, -8.1, -10.0, -20.0, -4.0] },
+      { harness: 'Direct', vals: [58.3, 23.0, 80.3, 96.7, 89.2, 73.4] },
+      { harness: 'OpenClaw', vals: [20.3, 13.4, 66.2, 83.3, 64.2, 68.3] },
+      { harness: 'ZeroClaw', vals: [17.5, 15.0, 77.8, 86.7, 69.2, 67.2] },
+      { harness: 'OpenCode', vals: [15.8, 13.9, 73.2, 86.7, 66.7, 69.4] },
     ],
   },
   {
@@ -58,10 +49,10 @@ const models: Model[] = [
     verdict: 'helps',
     takeaway: 'Several harness rows improve on IMO, GPQA, and AIME in this selected comparison.',
     rows: [
-      { harness: 'Direct', vals: [59.0, 27.9, 83.3, 96.7, 92.5, 65.8], deltas: null },
-      { harness: 'OpenClaw', vals: [59.5, 24.2, 85.4, 100.0, 97.5, 56.8], deltas: [0.5, -3.7, 2.1, 3.3, 5.0, -9.0] },
-      { harness: 'ZeroClaw', vals: [61.5, 29.1, 86.4, 100.0, 96.7, 66.4], deltas: [2.5, 1.2, 3.1, 3.3, 4.2, 0.6] },
-      { harness: 'OpenCode', vals: [62.5, 24.0, 87.9, 100.0, 96.7, 67.4], deltas: [3.5, -3.9, 4.6, 3.3, 4.2, 1.6] },
+      { harness: 'Direct', vals: [59.0, 27.9, 83.3, 96.7, 92.5, 65.8] },
+      { harness: 'OpenClaw', vals: [59.5, 24.2, 85.4, 100.0, 97.5, 56.8] },
+      { harness: 'ZeroClaw', vals: [61.5, 29.1, 86.4, 100.0, 96.7, 66.4] },
+      { harness: 'OpenCode', vals: [62.5, 24.0, 87.9, 100.0, 96.7, 67.4] },
     ],
   },
   {
@@ -70,17 +61,17 @@ const models: Model[] = [
     verdict: 'mixed',
     takeaway: 'The selected results contain a mixture of gains and losses against Direct.',
     rows: [
-      { harness: 'Direct', vals: [42.0, 35.9, 77.8, 96.7, 85.8, 75.1], deltas: null },
-      { harness: 'OpenClaw', vals: [27.3, 40.7, 31.8, 93.3, 72.5, 48.6], deltas: [-14.7, 4.8, -46.0, -3.4, -13.3, -26.5] },
-      { harness: 'ZeroClaw', vals: [38.7, 33.7, 87.4, 100.0, 93.3, 64.7], deltas: [-3.3, -2.2, 9.6, 3.3, 7.5, -10.4] },
-      { harness: 'OpenCode', vals: [48.5, 33.9, 80.8, 100.0, 86.7, 71.3], deltas: [6.5, -2.0, 3.0, 3.3, 0.9, -3.8] },
+      { harness: 'Direct', vals: [42.0, 35.9, 77.8, 96.7, 85.8, 75.1] },
+      { harness: 'OpenClaw', vals: [27.3, 40.7, 31.8, 93.3, 72.5, 48.6] },
+      { harness: 'ZeroClaw', vals: [38.7, 33.7, 87.4, 100.0, 93.3, 64.7] },
+      { harness: 'OpenCode', vals: [48.5, 33.9, 80.8, 100.0, 86.7, 71.3] },
     ],
   },
 ];
 
 const verdictLabel: Record<Model['verdict'], string> = {
   hurts: 'Lower overall',
-  helps: 'Higher overall',
+  helps: 'Task-dependent gains',
   mixed: 'Mixed',
 };
 
@@ -101,27 +92,26 @@ function Cell({ value, delta }: { value: number; delta: number | null | undefine
 }
 
 export default function Scoreboard() {
-  const [active, setActive] = useState(1); // default Gemma (clear "helps" story)
+  const [active, setActive] = useState(0);
   const model = models[active];
 
   return (
     <section id="results" className={clsx('section-gray', styles.section)}>
       <div className={styles.inner}>
-        <p className={styles.kicker}>Tournament Results</p>
+        <p className={styles.kicker}>Published Results</p>
         <h2 className={styles.heading}>Harness gains depend on the model, task, and harness</h2>
         <p className={styles.subhead}>
           The reported results compare the <strong>Direct</strong> no-harness baseline with open harnesses under matched
           models, tasks, scorers, and shared budgets while recording harness-specific runtime conditions. Harnessing
-          is <strong>not</strong> a uniform upgrade: it lifts Gemma,
-          sinks Qwen3.5, and produces mixed behavior on Kimi-K2.6. <span className={styles.legendPos}>Green</span>{' '}
+          is <strong>not</strong> a uniform upgrade: effects vary across models and tasks. <span className={styles.legendPos}>Green</span>{' '}
           means the harness beat Direct;{' '}
           <span className={styles.legendNeg}>red</span> means it lost ground.
         </p>
         <div className={styles.findings}>
           <div className={styles.finding}>
             <strong>Model perspective.</strong> Harnessing is not a model-agnostic improvement.
-            The evaluated harnesses never improve Qwen3.5-27B over its reference, help Gemma-4-31B-IT on several
-            answer-based tasks, and yield mixed outcomes for Kimi-K2.6.
+            All three harnesses lower Qwen3.5-27B's scores on all five answer-based benchmarks;
+            ZeroClaw improves Gemma-4-31B-IT on all five. Effects are mixed for Kimi-K2.6.
           </div>
           <div className={styles.finding}>
             <strong>Task perspective.</strong> Harness benefits are task-dependent. Gains on answer-based reasoning do
@@ -169,13 +159,13 @@ export default function Scoreboard() {
               </thead>
               <tbody>
                 {model.rows.map((row) => (
-                  <tr key={row.harness} className={clsx(row.deltas === null && styles.baseRow)}>
+                  <tr key={row.harness} className={clsx(row.harness === 'Direct' && styles.baseRow)}>
                     <th scope="row" className={styles.rowHead}>
                       {row.harness}
-                      {row.deltas === null && <span className={styles.baseTag}>baseline</span>}
+                      {row.harness === 'Direct' && <span className={styles.baseTag}>baseline</span>}
                     </th>
                     {row.vals.map((v, i) => (
-                      <Cell key={i} value={v} delta={row.deltas ? row.deltas[i] : null} />
+                      <Cell key={i} value={v} delta={row.harness === 'Direct' ? null : Number((v - model.rows[0].vals[i]).toFixed(1))} />
                     ))}
                   </tr>
                 ))}
@@ -187,9 +177,17 @@ export default function Scoreboard() {
         </div>
 
         <p className={styles.footnote}>
+          The paper also tests tools, skills, and memory. For Qwen on AIME 26, its three memory conditions
+          improve OpenCode and reduce OpenClaw and ZeroClaw accuracy relative to their defaults; all remain
+          below Direct. These comparisons combine memory-use instructions and persistence, and do not isolate
+          a single causal mechanism. See <a href="/docs/paper#memory-is-part-of-the-published-study">memory settings and limits</a>.
+        </p>
+        <p className={styles.footnote}>
           Values are percentages (higher is better); deltas are absolute differences vs. Direct. This view presents
-          selected results from Table 1 of the AlphaDiana study. Consult the corresponding archived runs when citing
-          exact values.
+          the five answer-based benchmarks in <a href={paperVersionUrl}>Figure 5 of arXiv:2610.20675v1</a>.
+          AIME 26 has 30 problems and four attempts per problem: Avg@4 averages correctness over 120 attempts;
+          Pass@4 is the fraction solved at least once. Deltas use the rounded values shown here.
+          See <a href="/docs/paper">study scope, interactive results, and measurement limits</a>.
         </p>
       </div>
     </section>

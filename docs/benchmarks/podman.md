@@ -32,11 +32,14 @@ podman build \
   alphadiana/harness/openclaw/deploy
 ```
 
-The repository image and Podman configs pin OpenClaw `2026.3.7`. Runtime
+The repository image and Podman configs pin OpenClaw `2026.3.14`. Runtime
 preflight compares the installed binary with `agent.version` and stops with a
 clear version-mismatch error before any benchmark request is made.
 
-Verify the required executable and Python runtime before starting a pilot. This
+Verify the required executable and Python runtime before starting a pilot.
+The checked-in images below include Python and SciPy; native historical images
+may instead provide only `python3`. Use the command required by the selected
+recipe, rather than assuming identical contents across image tags. This
 avoids waiting through a gateway timeout when a local tag points at an
 incompatible historical image:
 
@@ -56,7 +59,7 @@ Podman host networking:
 ```bash
 export OPENAI_BASE_URL=http://127.0.0.1:8011/v1
 export OPENAI_API_KEY=sk-EMPTY
-export OPENAI_MODEL_NAME=Qwen/Qwen3.5-4B
+export OPENAI_MODEL_NAME=Qwen/Qwen3.5-27B
 
 export HF_HOME=/path/to/writable/hf
 export HF_DATASETS_CACHE=$HF_HOME/datasets
@@ -79,7 +82,7 @@ it:
 ```bash
 export OPENCLAW_GATEWAY_TOKEN="$(python3 -c \
   'import secrets; print(secrets.token_urlsafe(32))')"
-python scripts/security_guard.py --check
+python scripts/setup/security_guard.py --check
 ```
 
 ## Network choices
@@ -113,8 +116,8 @@ Validate before making real provider requests:
 
 ```bash
 export PODMAN_SCALE_RUN_PREFIX=podman_scale_$(date +%Y%m%d_%H%M%S)
-bash scripts/run_podman_scale_readiness.sh validate
-bash scripts/run_podman_scale_readiness.sh gate
+bash scripts/validation/run_podman_scale_readiness.sh validate
+bash scripts/validation/run_podman_scale_readiness.sh gate
 ```
 
 `gate` attempts every matrix cell, preserves each exit code and raw log, and
@@ -144,9 +147,8 @@ checks in addition to the benchmark-specific preflight:
 - Put results, task logs, and dual logprob sidecars on a large data volume; do
   not assume the home filesystem can hold a full sweep.
 - Confirm every selected image digest and run its required binary/Python
-  preflight. TerminalBench2 may use the thinner controllers under
-  `docker/terminal_bench2/`; historical configs may call the OpenClaw image
-  `localhost/alphadiana-openclaw-fixed:latest`.
+  preflight. Controller definitions live with their harnesses:
+  `alphadiana/harness/{openclaw,opencode,zeroclaw}/deploy/Dockerfile.controller`.
 - Confirm the network mode matches provider reachability. A loopback provider
   requires host networking unless the harness explicitly advertises a host
   proxy through rootless networking.
@@ -161,7 +163,7 @@ checks in addition to the benchmark-specific preflight:
 ## Support boundary
 
 - This runbook documents opt-in diagnostic paths; it does not itself establish
-  repo-level support because this website checkout excludes the matching
+  repo-level support because this repository checkout excludes the matching
   result and reviewer-evidence archives.
 - Existing benchmark pages document stronger, benchmark-specific historical
   evidence where available.

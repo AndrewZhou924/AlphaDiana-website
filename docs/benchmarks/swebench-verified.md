@@ -7,26 +7,32 @@ the official instance image, the agent edits the repository and emits a patch,
 and the `swe_bench` scorer hands that patch to the official `swebench` evaluator
 (`report.json`, `run_instance.log`, and `test_output.txt` are attached as
 artifacts). There is no `direct_llm` path here; the task needs an agent acting
-inside a container. For the SWE-bench **Pro** path see
-[SWE-bench Pro](./swebench-pro); for the smaller set see
-[SWE-bench Verified Mini](./swebench-verified-mini).
+inside a container. For the smaller reproduction set see
+[SWE-bench Verified Mini](/docs/benchmarks/swebench-verified-mini).
 
 ## Prerequisites
 
 ```bash
-source scripts/activate.sh        # activate the environment
+source .venv/bin/activate         # or scripts/activate.sh for a ROCK installation
 docker ps                         # the swebench_container sandbox needs Docker
 ```
 
-Point the harness at an OpenAI-compatible endpoint. The request is issued from
-**inside the task container**, so a host-loopback URL will not resolve; use the
-Docker bridge address (or another reachable host):
+Point the harness at an OpenAI-compatible endpoint. Runtime-managed OpenClaw
+and ZeroClaw paths bridge a host-loopback provider through a host-side proxy and
+automatically advertise a container-reachable address:
 
 ```bash
-export OPENAI_BASE_URL=http://172.17.0.1:8011/v1   # bridge, not 127.0.0.1
-export OPENAI_API_KEY=<key>                          # any non-"EMPTY" string for local vLLM
-export OPENAI_MODEL_NAME=<model>
+export OPENAI_BASE_URL=http://127.0.0.1:8011/v1
+export OPENAI_API_KEY=sk-EMPTY
+export OPENAI_MODEL_NAME=Qwen/Qwen3.5-27B
 ```
+
+Docker Desktop uses `host.docker.internal`; Linux uses the detected Docker
+bridge gateway. For a custom container runtime, set `ALPHADIANA_CONTAINER_HOST`
+to a host address reachable from its containers. OpenCode connects to the
+provider directly from the task container; use a container-reachable hosted
+endpoint or, on Linux, set `sandbox.config.network_mode=host` when targeting a
+host-loopback model. Do not hard-code a bridge IP in a checked-in config.
 
 If the dataset is slow to fetch from Hugging Face, set a mirror with
 `export HF_ENDPOINT=https://hf-mirror.com`. Install the SWE extras once with
@@ -40,13 +46,13 @@ scale a full run by raising `benchmark.config.max_tasks`.
 
 | Harness | How the agent runs in the task container | Smoke config |
 | --- | --- | --- |
-| `openclaw` | starts an `openclaw` gateway in the container; AlphaDiana drives it over the OpenAI-compatible API | `configs/examples/openclaw_swe_bench.yaml` |
-| `opencode` | runs `opencode run` directly; the patch is taken from `git diff HEAD` | `configs/examples/opencode_swe_bench.yaml` |
-| `zeroclaw` | runs the `zeroclaw` CLI in the container | `configs/examples/zeroclaw_swe_bench.yaml` |
+| `openclaw` | starts an `openclaw` gateway in the container; AlphaDiana drives it over the OpenAI-compatible API | `configs/macro_runs/swe_bench_verified_openclaw_qwen35_27b.yaml` |
+| `opencode` | runs `opencode run` directly; the patch is taken from `git diff HEAD` | `configs/macro_runs/swe_bench_verified_opencode_qwen35_27b.yaml` |
+| `zeroclaw` | runs the `zeroclaw` CLI in the container | `configs/macro_runs/swe_bench_verified_zeroclaw_qwen35_27b.yaml` |
 
-> ZeroClaw on a local `Qwen/Qwen3.5-27B` endpoint currently preserves
-> provider-side context overflow as a `provider_error` rather than an empty
-> patch. Treat that as a known limitation, not a passing run.
+Provider context overflows and transport errors are preserved as explicit
+failure records rather than empty patches. They indicate an unsuccessful model
+attempt, not a harness-level passing run.
 
 `validate` only checks the config shape. `run` pulls the dataset, starts the
 per-task container, runs the agent, and invokes the official evaluator, so it
@@ -80,7 +86,7 @@ scorer:
 
 ## OpenClaw
 
-`configs/examples/openclaw_swe_bench.yaml` sets `runtime: swebench_container` and
+`configs/macro_runs/swe_bench_verified_openclaw_qwen35_27b.yaml` sets `runtime: swebench_container` and
 `openclaw_config_path: alphadiana/harness/openclaw/deploy/openclaw_swe_bench.runtime.json`.
 At run time the harness installs and starts an `openclaw` gateway inside each
 task container, injects the three `OPENAI_*` variables into the runtime JSON, and
@@ -88,30 +94,30 @@ talks to the gateway over `/v1/chat/completions`. Artifacts include the OpenClaw
 session trajectory and gateway logs.
 
 ```bash
-python -m alphadiana.cli run configs/examples/openclaw_swe_bench.yaml \
+python -m alphadiana.cli run configs/macro_runs/swe_bench_verified_openclaw_qwen35_27b.yaml \
   -o run_id=swebench-openclaw-smoke -o benchmark.config.max_tasks=1
 ```
 
 ## OpenCode
 
-`configs/examples/opencode_swe_bench.yaml` runs `opencode run` directly in the
+`configs/macro_runs/swe_bench_verified_opencode_qwen35_27b.yaml` runs `opencode run` directly in the
 container (no gateway) and extracts the final patch with `git diff HEAD`. It
 reads the model endpoint from the three `OPENAI_*` variables and writes the
-provider config to `opencode.json` inside the container.
+provider config to `opencode.json` inside the container. For a Linux-local
+provider bound to `127.0.0.1`, add `-o sandbox.config.network_mode=host`.
 
 ```bash
-python -m alphadiana.cli run configs/examples/opencode_swe_bench.yaml \
+python -m alphadiana.cli run configs/macro_runs/swe_bench_verified_opencode_qwen35_27b.yaml \
   -o run_id=swebench-opencode-smoke -o benchmark.config.max_tasks=1
 ```
 
 ## ZeroClaw
 
-`configs/examples/zeroclaw_swe_bench.yaml` runs the `zeroclaw` CLI in the task
-container; artifacts include `zeroclaw_output.txt` and `zeroclaw_stderr.log`. See
-the limitation note above for the local Qwen path.
+`configs/macro_runs/swe_bench_verified_zeroclaw_qwen35_27b.yaml` runs the `zeroclaw` CLI in the task
+container; artifacts include `zeroclaw_output.txt` and `zeroclaw_stderr.log`.
 
 ```bash
-python -m alphadiana.cli run configs/examples/zeroclaw_swe_bench.yaml \
+python -m alphadiana.cli run configs/macro_runs/swe_bench_verified_zeroclaw_qwen35_27b.yaml \
   -o run_id=swebench-zeroclaw-smoke -o benchmark.config.max_tasks=1
 ```
 
@@ -120,11 +126,11 @@ python -m alphadiana.cli run configs/examples/zeroclaw_swe_bench.yaml \
 If a task container is up and the gateway log looks healthy but the host side of
 `/v1/models` resets, check the rendered `openclaw.json` `gateway.bind` /
 `customBindHost` before suspecting the model. The gateway must not bind only to
-`127.0.0.1`, and the `swebench_container` path deliberately does not forward
-host-loopback proxy variables (a bridge-network container cannot use the host's
-loopback proxy). OpenClaw is installed in-container via `npm`, backed by a
-host-side `libsignal-node` git mirror so the install does not need to reach
-GitHub.
+`127.0.0.1`. A bridge-network container cannot use the host's loopback address
+directly; use the runtime-managed bridge described above or explicit host
+networking for direct container-to-provider traffic. OpenClaw is installed
+in-container via `npm`, backed by a host-side `libsignal-node` git mirror so the
+install does not need to reach GitHub.
 
 ## Result locations
 

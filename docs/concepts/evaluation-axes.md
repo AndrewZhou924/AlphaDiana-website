@@ -2,90 +2,103 @@
 sidebar_position: 3
 ---
 
-# Evaluation Axes: Tool, Skill, Memory
+# Evaluation Axes: Tools, Skills, and Memory
 
-AlphaDiana can compare matched harness conditions that change tool exposure,
-skill loading, or memory behavior. These are useful controlled comparisons, but
-they are not always literal one-variable interventions: disabling tools can also
-replace prompt text, and enabling a skill or memory mode can add instructions as
-well as runtime state.
-There are three axes:
+AlphaDiana compares complete harness conditions that change tool exposure,
+skill loading, or memory behavior. Changes may affect both instructions and
+runtime state, so a comparison does not necessarily isolate one mechanism.
 
-- **Tool** — whether the harness exposes its native tools (file, bash, sandbox).
-- **Skill** — whether a skill bundle is loaded into the harness.
-- **Memory** — whether the harness keeps a persistent memory store, and at what
-  scope.
+## Published study coverage
 
-For a defensible comparison, keep the model, sampling parameters, benchmark,
-scorer, and unrelated harness settings fixed, then document the complete
-condition bundle that changed. Treat the score delta as an association with that
-bundle, not as an isolated causal contribution from a single capability.
+The paper reports all three axes in [Section 4 and Appendix D](https://arxiv.org/pdf/2610.20675v1#page=8).
+Its macro baseline is Default Harness with native prompts and tools, without
+added skill libraries or instructions to use memory.
 
-A useful reference point is the **Direct LLM** baseline (`direct_llm` harness),
-the model without an agent scaffold. A harnessed cell below a matched DirectLLM
-cell may be described as an *agent scaffold tax*, provided both cells use the
-same model and evaluation protocol. This checkout does not contain the raw
-result artifacts needed to substantiate a particular headline delta; use the
-result store from the run being reported. See [Harnesses](../harnesses/) for the
-four harnesses themselves.
+| Axis | Published comparisons | Source |
+| --- | --- | --- |
+| Tool | ZeroClaw and OpenCode; Qwen3.5-27B and Kimi-K2.6; GPQA-Diamond and AIME 26; default versus tool-registry removal | Figure 10, Appendix D.2 |
+| Skill | The same model/harness/task combinations; default versus Math or General libraries | Figures 11–12, Appendix D.3 |
+| Memory | OpenClaw, OpenCode, and ZeroClaw; Qwen3.5-27B on AIME 26; three persistence scopes | Figures 13–14, Appendix D.4 |
 
-## What "off" means per axis
+OpenClaw participates in the memory study, but not the tool/skill intervention
+matrix. Keep model, tasks, scoring, decoding, budgets, and the native agent loop
+matched within each comparison, and record all changed prompts and settings.
 
-"Off" is defined per axis and the definitions are not interchangeable.
+Direct is the no-tool, single-response reference for answer-based tasks. A score
+gap against Direct describes a complete model–harness–task configuration; it
+does not by itself identify the cause. See [Paper and published results](/docs/paper)
+for scores and resource-accounting limits.
 
-| Axis | "On" | "Off" |
-|---|---|---|
-| Tool | Harness exposes its native tools and uses the corresponding prompt condition | Tools are filtered and the system/user prompt condition may also be rewritten |
-| Skill | A skill bundle is mounted and named in the prompt | No skill bundle is loaded and the skill-introduction prompt is absent |
-| Memory | Harness's native memory backend is enabled (`persistent_memory: true`) | Harness defaults with no memory store and no memory-encouraging prompt |
+## What each intervention changes
 
-Note that **Tool-off** and **Memory-off** are not the same configuration.
-Tool-off strips every tool and rewrites the system prompt — it is the floor on
-what the harness can do. Memory-off keeps the harness's native tools and is the
-correct baseline for measuring memory's contribution. Conversely **Tool-on**
-(harness default) and **Memory-off** are the same data point reported under two
-names for table self-containment.
+| Axis | Intervention | Reference condition |
+| --- | --- | --- |
+| Tool | Suppress model-visible tool descriptions and related instructions, preserving the native harness loop | Default native tools and prompts |
+| Skill | Mount a Math or General library through the native interface and add loading instructions; native tools remain available | No added skill library |
+| Memory | Retain designated memory at the chosen scope and add memory-use instructions | Clear memory between attempts without explicitly eliciting its use |
 
-For the Skill axis mechanics (skill bundles mounted via `agent.config.skill_folder`),
-see the [Harnesses overview](../harnesses/). The rest
-of this page covers the Memory axis, the only axis that adds a second dimension
-(scope) on top of on/off.
+Tool removal is not the same condition as changing memory retention. Default
+Harness still has native tools, and native memory availability is distinct from
+whether its use is elicited or its state survives an attempt. Skill loading is
+also a full configuration: OpenCode uses the same instruction wording for both
+libraries, whereas ZeroClaw requires Math loading and makes General optional.
 
-## The Memory axis
+Runnable presets live under
+[`configs/micro_runs/`](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/5721533be9c1d66a2e37c6dadc99b0c6ce284c90/configs/micro_runs/README.md).
+Check each preset against the published condition; a directory name or config's
+presence does not establish that it reproduces a published run.
 
-Tool exposure and skill loading are one-shot on/off edits. Memory adds a
-**scope** dimension: how long the store survives before it is cleared. Widening
-scope makes memory *less* monotonic, not more, which is why it is the
-deliberate counterexample to the framework's monotonicity thesis.
+## Published memory conditions
 
-### Scopes
+The paper keeps model weights fixed and resets raw interaction histories and
+workspace files between attempts. Only designated memory persists, without a
+separate answer cache.
 
-The experimental design discusses three possible persistence scopes. Only the
-checked-in Cross-Task ZeroClaw config is directly runnable from this checkout.
+| Paper scope | State boundary |
+| --- | --- |
+| Cross-Rollout | Four attempts on one problem share writable memory; clear it before the next problem |
+| Cross-Task | Each of four separate runs processes Tasks 1–30 sequentially, starting with empty memory and retaining it across tasks; no sharing between runs |
+| Cross-Dataset | Build memory on AIME 25, freeze it before AIME 26, and read it without updates on target tasks |
 
-| Scope | What persists | n | Boundary |
-|---|---|---|---|
-| Cross-Sample | Intended: memory accumulates across samples of the same problem | multiple | Requires task-scoped namespacing or an explicit reset between problems; the runner does not provide this boundary |
-| Cross-Task | Memory accumulates across different problems run sequentially | configurable | Store remains available within the run |
-| Transfer | Intended: build a store on one dataset, then evaluate with recall-on / store-off | configurable | Requires separately controlled build and frozen evaluation stages |
+In Figure 13, all three scopes improve OpenCode and reduce OpenClaw and
+ZeroClaw accuracy relative to Default Harness; all nine configurations remain
+below Direct. Figure 14 reports memory accumulation, including separate
+sequential runs whose defaults can differ from Figure 13.
 
-Static paper figures may illustrate proposed or previously reported comparisons,
-but they are not current support evidence. Do not quote exact memory deltas from
-this page without the corresponding run IDs and task-level artifacts.
+OpenCode includes earlier solutions in later prompts. OpenClaw and ZeroClaw
+retrieve stored summaries. The experiment changes both memory instructions and
+persistence, while retrieval, prompt length, and control loops differ across
+harnesses. It therefore does not establish that anchoring, noise, or any one
+storage mechanism causes the score differences.
 
-### Mechanisms are harness-native, not a shared framework
+Cross-Rollout attempts are dependent because later attempts may reuse earlier
+solutions. Cross-Task running accuracy also varies with the difficulty of tasks
+seen so far. Do not interpret these as independent repeated samples or a general
+guarantee that more memory improves accuracy.
 
-There is **no** runner-level snapshot framework. Each harness uses its own
-native memory backend, which is the point: the same "memory on" knob produces
-opposite signs because the harness, not the model, decides whether memory
-anchors behavior (OpenCode) or injects low-relevance noise (OpenClaw,
-ZeroClaw).
+## Runtime memory controls
 
-| Harness | Backend | Mechanism |
-|---|---|---|
-| [OpenCode](../harnesses/opencode) | OpenCode session chain + per-task `/compact`; persistent HOME (`opencode.db` sqlite) bind-mounted at `{workdir}/.controller-home` | Compaction summaries carry the agent's own prior clean solves as a behavioral template — anchoring, not knowledge transfer |
-| [OpenClaw](../harnesses/openclaw) | `memory-lancedb` vector plugin, backed by an OpenAI-compatible embedding endpoint (for example a local vLLM serving an embedding model) | One distilled `[fact]` sentence per problem via a forced store-turn; recall injected under a `<relevant-memories>` "untrusted historical data" guard |
-| [ZeroClaw](../harnesses/zeroclaw) | sqlite + vector (embeddings via an OpenAI-compatible endpoint), `memory_store` / `memory_search` | Keyed `[math]` insights; self-pollutes by also storing its own system prompt as a `[conversation]` memory and recalling it as junk |
+Runtime configuration keys and paper condition names are not interchangeable.
+The following controls describe the release interface; reproducing a paper
+condition also requires the matching task order, reset policy, prompts, and
+artifacts.
+
+| Runtime scope | Intended boundary | Relation to the paper |
+| --- | --- | --- |
+| `intra_task` | Fresh state for each `(task, sample)` | Does not retain state across attempts; not a fourth published memory condition |
+| `cross_sample` | Retain memory across attempts on one task; reset at the task boundary | Persistence boundary used by Cross-Rollout, with its other settings also required |
+| `cross_task` | Retain memory across tasks in a sequential run | Persistence boundary used by Cross-Task, with separate runs and fixed order required |
+
+Cross-Dataset instead requires a build/freeze protocol. A retention scope alone
+does not establish that the source memory came from AIME 25 or stayed frozen.
+
+### Mechanisms and evidence
+
+The runner controls reuse boundaries while each harness implements its native
+storage and retrieval path. The [OpenCode](/docs/harnesses/opencode),
+[OpenClaw](/docs/harnesses/openclaw), and [ZeroClaw](/docs/harnesses/zeroclaw)
+guides document those paths. Native evidence is needed to establish what a run
+actually retained or retrieved; benchmark scores alone do not establish that.
 
 ### Configuration
 
@@ -94,11 +107,14 @@ same across all three harnesses; the remaining keys are harness-specific.
 
 | Key | Harness | Purpose |
 |---|---|---|
-| `persistent_memory` | all three | Master memory on/off |
+| `memory_scope` | all three | `intra_task`, `cross_sample`, or `cross_task`; stateful scopes are sequential |
+| `persistent_memory` | all three | Retain native memory across work items |
+| `memory_enabled` | all three | Enable native memory even when the store is isolated to one work item |
+| `strict_memory` | all three | Require verifiable native memory execution; no silent fallback |
 | `compact_after_task` | OpenCode | Run `/compact` after each task |
 | `fresh_session` | OpenCode | Fresh session per task; fills and injects the harness memory bank instead of chaining sessions |
 | `memory_freeze` | OpenCode | Transfer mode: frozen tasks fork from a post-build HOME snapshot |
-| `oracle_feedback` | all three | Post-solve reflection turn that reveals `ground_truth` (oracle-feedback v2) |
+| `oracle_feedback` | all three | Optional post-solve reflection exposing `ground_truth`; this is a separate experimental condition, not an instruction to enable it for the published memory protocol |
 | `context_limit` / `output_limit` | OpenCode | Declare token budget so OpenCode's native autocompact fires before the provider's hard wall |
 | `memory_embedding.{base_url, model, dimensions, search_mode}` | ZeroClaw | Vector recall; omit `base_url` to fall back to FTS-only |
 | `memory_lancedb.{api_key, model, base_url, dimensions, db_path, auto_capture, auto_recall}` | OpenClaw | Flat keys in one dict: embedding endpoint (api_key, model, base_url, dimensions) and the LanceDB store path. `auto_capture` / `auto_recall` are read on the gateway path only; the local-agent path hardcodes `autoCapture: false` and `autoRecall: true` |
@@ -112,19 +128,21 @@ embedded `openclaw agent --local` two-turn flow
 `autoRecall` / `autoCapture` hooks fire; the chat/completions path never
 triggers them.
 
-Transfer is data-driven: each task carries `metadata.memory_mode`, either
+The separate transfer protocol is data-driven: each task carries `metadata.memory_mode`, either
 `build` (write + recall) or `frozen` (recall only). The default is `build`.
 
 ### Running a memory experiment
 
+This example runs a framework preset; it does not by itself reproduce the full paper protocol.
+
 ```bash
 python -m alphadiana.cli run \
-  configs/memory_experiments/exp1_zw_aime_memory_seq.yaml \
+  configs/micro_runs/Memory/cross_task/aime2026_zeroclaw_qwen35_27b.yaml \
   --redo-all
 ```
 
-The shipped config is a ZeroClaw Cross-Task run in sqlite FTS mode (no embedding
-endpoint needed). It reads five environment variables: `OPENAI_MODEL_NAME`,
+The ZeroClaw Cross-Task reference uses sqlite FTS mode (no embedding endpoint
+needed). It reads provider and ROCK environment variables including `OPENAI_MODEL_NAME`,
 `OPENAI_BASE_URL`, `OPENAI_API_KEY`, `ROCK_BASE_URL`, and `ROCK_PROXY_URL`. An
 unset one is blanked rather than reported. The three `OPENAI_*` are named back to
 you when the run dies, but an unset `ROCK_*` fails opaquely: the runner quietly
@@ -132,25 +150,28 @@ falls back to a default localhost ROCK port and you get a connection error.
 
 The config also pins `rock_image: zeroclaw-reasoning:0.6.9`, which makes the
 runner auto-create a ROCK sandbox, so the ROCK mode prerequisites on the
-[ZeroClaw](../harnesses/zeroclaw) page apply first: build that image locally (it
+[ZeroClaw](/docs/harnesses/zeroclaw) page apply first: build that image locally (it
 is not published on Docker Hub), then start the host ROCK services with
-`bash scripts/start_zeroclaw.sh` and export their URLs with
+`bash scripts/setup/start_zeroclaw.sh` and export their URLs with
 `source scripts/rock_env.sh`. Both scripts need the `ref/ROCK` checkout that the
-one-time setup in [Installation](../getting-started/installation) creates, and
+one-time setup in [Installation](/docs/getting-started/installation) creates, and
 abort without it, which is what leaves the two `ROCK_*` variables unset.
 
-The remaining Cross-Sample and Transfer configs are not shipped in the
-repository. Increasing `num_samples` and changing a prompt is not sufficient to
-implement Cross-Sample isolation: the runner has no general store reset between
-task boundaries. A faithful experiment must use separate per-problem runs,
-task-namespaced stores, or an explicit verified reset. The ZeroClaw gate
-`_has_memories` counts successful store turns rather than inspecting the store,
-so it can fire even if the model never actually called `memory_store`.
+Cross-Sample is not just `num_samples > 1`: `memory_scope: cross_sample` also
+enforces sequential dispatch and explicitly rebuilds harness/sandbox state at
+the task boundary. With `strict_memory: true`, ZeroClaw verifies that the native
+entry count increased and OpenClaw verifies a new LanceDB transaction before a
+work item is accepted.
+
+Cross-Sample and Cross-Task samples are deliberately dependent observations.
+The generated report therefore labels their aggregates `Sequential Any@k` and
+`Sequential Mean@k`; they must not be interpreted as standard independent
+pass@k estimates.
 
 ### Reading the results
 
 Memory results land through the result store at
-`alphadiana/analysis/io/result_store.py`; the run loop lives under
+`alphadiana/results/store.py`; the run loop lives under
 `alphadiana/engine/` (`alphadiana/engine/runner.py`). The plots and the scope
 ladder are regenerated from the recorded results.
 

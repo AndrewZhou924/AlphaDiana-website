@@ -5,7 +5,7 @@ sidebar_position: 3
 # CLI & Overrides
 
 The `alphadiana` command-line tool is a [Click](https://click.palletsclick.com/) group
-(`main` in `alphadiana/cli.py`). Every workflow, from a single
+(`main` in `alphadiana/cli/commands.py`). Every workflow, from a single
 run to a batch sweep, goes through one of its subcommands. This page documents those
 subcommands, the `-o` dotted-override syntax, and the `run_id` / `num_samples` conventions
 that govern where results land and how many samples each task produces.
@@ -14,23 +14,25 @@ that govern where results land and how many samples each task produces.
 
 | Command | Argument | Purpose |
 |---------|----------|---------|
-| `run` | `<config.yaml>` | Run one evaluation experiment end to end. |
+| `compute` | `<config.yaml>` | Run one evaluation experiment end to end. |
+| `analyzer` | `<results.jsonl> ...` | Compute analysis JSON; add `--output-dir` to export figures. |
+| `run` | `<config.yaml>` | Compatibility alias for `compute`. |
 | `validate` | `<config.yaml>` | Load and validate a config without running. |
 | `report` | `<results_dir>` | Regenerate a `RunSummary` from an existing results directory. |
 | `batch` | `<config1.yaml> <config2.yaml> ...` | Run several configs sequentially (or with `--parallel`). |
 | `env` | — | Check ROCK service health and ownership; print start instructions. |
 | `list-benchmarks` | — | List the complete benchmark registry used by `Runner.setup()`. |
 
-All commands that take a config accept `-o`/`--override` (see below). The `run` and `batch`
+All commands that take a config accept `-o`/`--override` (see below). The `compute` and `batch`
 commands additionally accept run-control flags.
 
-### `run`
+### `compute`
 
 ```bash
-alphadiana run configs/test_openclaw_quick.yaml
+alphadiana compute configs/macro_runs/aime2026_openclaw_qwen35_27b.yaml
 ```
 
-`run` builds the override dict, loads the config with `ExperimentConfig.from_yaml`, runs the
+`compute` builds the override dict, loads the config with `ExperimentConfig.from_yaml`, runs the
 `ConfigValidator` (hard errors abort with exit code 1), emits non-fatal warnings, does a
 Terminal-Bench-2 preflight, warns on inherited proxy env vars, runs a ROCK service preflight
 for ROCK-backed runs, then drives `Runner.setup() -> run() -> teardown()` in a
@@ -40,17 +42,44 @@ completed/total counts, exiting 1 when `strict_report` is set and the strict che
 To ignore the checkpoint and re-run every task:
 
 ```bash
-alphadiana run configs/test_openclaw_quick.yaml --redo-all
+alphadiana compute configs/macro_runs/aime2026_openclaw_qwen35_27b.yaml --redo-all
 ```
 
 ### `validate`
 
 ```bash
-alphadiana validate configs/test_openclaw_quick.yaml
+alphadiana validate configs/macro_runs/aime2026_openclaw_qwen35_27b.yaml
 ```
 
-Loads the config and runs the same `ConfigValidator` as `run`, printing `Config is valid.`
+Loads the config and runs the same `ConfigValidator` as `compute`, printing `Config is valid.`
 when clean. Use this in CI or before launching a long sweep.
+
+### `analyzer`
+
+```bash
+alphadiana analyzer results/run.jsonl
+alphadiana analyzer results/run.jsonl --output-dir figures/run
+alphadiana analyzer results/a.jsonl results/b.jsonl --output-dir figures/comparison --formats svg
+alphadiana analyzer results/run.jsonl --judge --output-dir figures/annotated
+```
+
+This calls `ad.analyzer(artifacts, ...)` directly.
+Without `--output-dir` it prints `compute()` measurements as JSON.
+With `--output-dir` it calls `export()`, including source hashes, coverage and plotted data.
+Exports default to PDF, SVG and PNG; repeat `--formats` to select formats.
+Use a new or empty output directory to preserve earlier evidence.
+
+`--judge` enables action and failure annotations using `ANALYSIS_MODEL`,
+`ANALYSIS_BASE_URL` and `ANALYSIS_API_KEY`. Optional `--model`, `--base-url`,
+`--api-key` and `--cache-dir` map to the API's analyzer options.
+Prefer the environment variable for the key.
+Explicit provider options enable judging just as they do in the API; merely
+setting environment variables does not opt a default analysis into model calls.
+Custom analysis plugin composition remains available through Python.
+
+The component names in YAML are `agent`, `data`, `scorer` and optional `env`.
+Existing `benchmark` and `sandbox` sections remain supported, including dotted overrides.
+Do not provide both names for one component in the same YAML document or override layer.
 
 ### `report`
 
@@ -64,10 +93,10 @@ directly from the JSONL result store, without re-running any tasks.
 ### `batch`
 
 ```bash
-alphadiana batch configs/examples/direct_llm.yaml configs/examples/direct_llm_gpqa_diamond.yaml \
-  -o benchmark.config.max_tasks=1 -o num_samples=1
-alphadiana batch configs/examples/direct_llm.yaml configs/examples/direct_llm_gpqa_diamond.yaml \
-  --parallel -o benchmark.config.max_tasks=1 -o num_samples=1
+alphadiana batch configs/macro_runs/aime2026_directllm_qwen35_27b.yaml configs/macro_runs/gpqa_directllm_qwen35_27b.yaml \
+  -o data.config.max_tasks=1 -o num_samples=1
+alphadiana batch configs/macro_runs/aime2026_directllm_qwen35_27b.yaml configs/macro_runs/gpqa_directllm_qwen35_27b.yaml \
+  --parallel -o data.config.max_tasks=1 -o num_samples=1
 ```
 
 These commands make real provider requests but bound each input to one task.
@@ -83,8 +112,8 @@ alphadiana env
 ```
 
 Reports ROCK service status (admin, proxy, redis, docker) and ownership, and prints the
-commands to start anything that is down. See [Quickstart Commands](../getting-started/quick-start)
-for the full bring-up sequence.
+commands to start anything that is down. See [ROCK bring-up](/docs/getting-started/installation#rock-bring-up-for-rock-backed-configs)
+for the service setup sequence. DirectLLM and self-managed native paths skip it.
 
 ### `list-benchmarks`
 
@@ -92,8 +121,8 @@ for the full bring-up sequence.
 alphadiana list-benchmarks
 ```
 
-Imports the same benchmark modules as `Runner.setup()` and lists the resulting
-registry names. The [Benchmarks inventory](../benchmarks/) explains each value
+Calls the shared `load_builtin_benchmarks()` loader and lists the resulting
+registry names. The [Benchmarks inventory](/docs/benchmarks) explains each value
 and its expected scorer/runtime contract.
 
 ## The `-o` override syntax
@@ -104,9 +133,9 @@ repeatable; each override is parsed into a nested dict by `parse_override` and m
 after the YAML is loaded, so overrides win.
 
 ```bash
-alphadiana validate configs/examples/direct_llm.yaml \
+alphadiana validate configs/macro_runs/aime2026_directllm_qwen35_27b.yaml \
   -o agent.config.temperature=0.6 \
-  -o benchmark.config.max_tasks=1 \
+  -o data.config.max_tasks=1 \
   -o max_concurrent=2
 ```
 
@@ -125,19 +154,19 @@ The dotted path mirrors the YAML structure exactly:
 | `-o run_id=my-experiment` | Names the run (see conventions below). |
 | `-o sandbox.config.rock_image=...` | Sandbox config key. |
 
-:::warning Do not override v2 contract params
-Do not use `-o` to change reasoning controls or `max_tokens` on contract-bound v2 runs
-(e.g. `agent.config.enable_thinking`, `agent.config.max_tokens`). Those are the experimental
-variable, not plumbing; a downscaled run must use a distinct `run_id` with an explicit
-suffix.
-:::
+> [!WARNING] **Do not override v2 contract params**
+> Do not use `-o` to change reasoning controls or `max_tokens` on contract-bound v2 runs
+> (e.g. `agent.config.enable_thinking`, `agent.config.max_tokens`). Those are the experimental
+> variable, not plumbing; a downscaled run must use a distinct `run_id` with an explicit
+> suffix.
+
 
 ### `--redo-all`
 
 ```bash
-alphadiana run configs/examples/direct_llm.yaml --redo-all \
+alphadiana compute configs/macro_runs/aime2026_directllm_qwen35_27b.yaml --redo-all \
   -o run_id=redo_demo_aime_directllm_t1_k1 \
-  -o benchmark.config.max_tasks=1 -o num_samples=1
+  -o data.config.max_tasks=1 -o num_samples=1
 ```
 
 By default `run` resumes from the checkpoint: any task with an existing valid-scored record
@@ -156,7 +185,7 @@ incomplete and are retried.
 (`ExperimentConfig.__post_init__`), and any `/` in the value is replaced with `_` so the id
 is always a safe path segment.
 
-Given `run_id: my-run`, the result store (`alphadiana/analysis/io/result_store.py`) writes:
+Given `run_id: my-run`, the result store (`alphadiana/results/store.py`) writes:
 
 ```
 results/
@@ -171,7 +200,7 @@ results/
 
 Each JSONL record embeds the problem, `ground_truth`, `predicted` (the response answer),
 `correct`, `score`, the (normalized) trajectory, token usage, and a `score_status`. See the
-[Result Store](../architecture/scoring-and-results) page for the full record shape.
+[Result Store](/docs/architecture/scoring-and-results) page for the full record shape.
 
 ## `num_samples` conventions
 
@@ -225,12 +254,12 @@ Common top-level keys: `run_id`, `max_concurrent`, `num_samples`, `output_dir`,
 `redo_all`, `sandbox_retries`, `task_retries`, `task_retry_on_recoverable_only`,
 `strict_report`, `strict_isolation`, `metadata`.
 
-:::note Local vLLM API key
-The validator treats the literal string `EMPTY` (and unresolved `$VAR`) as blank. For local
-vLLM use `sk-EMPTY` or any other non-`EMPTY` string.
-:::
+> [!NOTE] **Local vLLM API key**
+> The validator treats the literal string `EMPTY` (and unresolved `$VAR`) as blank. For local
+> vLLM use `sk-EMPTY` or any other non-`EMPTY` string.
+
 
 For agent-specific config blocks see the harness pages
-([direct_llm](../harnesses/direct-llm), [zeroclaw](../harnesses/zeroclaw),
-[opencode](../harnesses/opencode), [openclaw](../harnesses/openclaw)). For sandbox and
-isolation modes see [Benchmark Isolation](../concepts/isolation-and-fairness).
+([direct_llm](/docs/harnesses/direct-llm), [zeroclaw](/docs/harnesses/zeroclaw),
+[opencode](/docs/harnesses/opencode), [openclaw](/docs/harnesses/openclaw)). For sandbox and
+isolation modes see [Benchmark Isolation](/docs/concepts/isolation-and-fairness).

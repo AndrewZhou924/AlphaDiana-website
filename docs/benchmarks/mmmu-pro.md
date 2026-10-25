@@ -7,14 +7,15 @@ MMMU-Pro evaluates multimodal multiple-choice reasoning on `MMMU/MMMU_Pro`.
 Run from the repository root:
 
 ```bash
-source scripts/activate.sh
+# Plain package installation; ROCK users instead use scripts/activate.sh.
+source .venv/bin/activate
 
-export OPENAI_BASE_URL=https://models.sjtu.edu.cn/api/v1/
-export OPENAI_API_KEY=sk-...
-export OPENAI_MODEL_NAME=minimax-m2.5
+export OPENAI_BASE_URL=http://127.0.0.1:8011/v1
+export OPENAI_API_KEY=sk-EMPTY
+export OPENAI_MODEL_NAME=Qwen/Qwen3.5-27B
 ```
 
-When running from a local checkout, prefer the module entrypoint:
+For ROCK-backed configurations only, check service health:
 
 ```bash
 python -m alphadiana.cli env
@@ -24,12 +25,18 @@ python -m alphadiana.cli env
 
 | Mode | Status | Smoke / Debug Config |
 |---|---|---|
-| `direct_llm` | smoke/debug supported | `configs/examples/direct_llm_mmmu_pro.yaml` |
-| `openclaw` | smoke/debug supported | `configs/examples/openclaw_mmmu_pro.yaml` |
-| `opencode` | smoke/debug supported | `configs/examples/opencode_mmmu_pro.yaml` |
-| `zeroclaw` | smoke/debug supported | `configs/examples/zeroclaw_mmmu_pro.yaml` |
+| `direct_llm` | smoke/debug supported | `configs/macro_runs/mmmu_pro_directllm_qwen35_27b.yaml` |
+| `openclaw` | smoke/debug supported | `configs/macro_runs/mmmu_pro_openclaw_qwen35_27b.yaml` |
+| `opencode` | smoke/debug supported | `configs/macro_runs/mmmu_pro_opencode_qwen35_27b.yaml` |
+| `zeroclaw` | smoke/debug supported | `configs/macro_runs/mmmu_pro_zeroclaw_qwen35_27b.yaml` |
 
-## Podman Multimodal Readiness
+## Historical Podman Multimodal Readiness
+
+> [!CAUTION]
+> This records an earlier Podman validation. The current release configs select
+> ROCK for OpenClaw/ZeroClaw and Docker for OpenCode, while the historical audit
+> requires `metadata.container_engine=podman`. Do not run this helper as current
+> release evidence until its configs and audit are aligned.
 
 Phase 6 added an opt-in Podman readiness matrix for OpenClaw, ZeroClaw, and
 OpenCode on three deterministic MMMU-Pro `vision` rows:
@@ -38,7 +45,9 @@ OpenCode on three deterministic MMMU-Pro `vision` rows:
 - `mmmu_pro_test_Art_113`
 - `mmmu_pro_validation_Design_19`
 
-Configs live under `configs/smokes/podman_mmmu_pro_readiness/`.
+The three harness cells use the corresponding
+`configs/macro_runs/mmmu_pro_*_qwen35_27b.yaml` files. The readiness runner
+selects those files and adds a one-task override.
 
 Current status as of May 16, 2026: `Qwen/Qwen3.5-4B` served by the local vLLM
 endpoint at `http://127.0.0.1:8011/v1` is verified for both remote
@@ -49,12 +58,12 @@ Podman `--network host`. The repaired run prefix
 expected task rows with `metadata.container_engine=podman`; the audit passed
 with `audit_passed=true` and `audit_failure_count=0`.
 
-Use this sequence before any future pilot attempt:
+Historical sequence (not a current release command):
 
 ```bash
 export OPENAI_BASE_URL=http://127.0.0.1:8011/v1
-export OPENAI_API_KEY=EMPTY
-export OPENAI_MODEL_NAME=Qwen/Qwen3.5-4B
+export OPENAI_API_KEY=sk-EMPTY
+export OPENAI_MODEL_NAME=Qwen/Qwen3.5-27B
 export PODMAN_MMMU_PRO_MAX_TOKENS=8192
 export PODMAN_MMMU_PRO_ENABLE_THINKING=1
 export PODMAN_MMMU_PRO_VLM_IMAGE_URL=https://qianwen-res.oss-accelerate.aliyuncs.com/Qwen3.5/demo/RealWorld/RealWorld-04.png
@@ -62,7 +71,7 @@ export HF_HOME=<hf-cache-dir>
 export HF_DATASETS_CACHE=<hf-datasets-cache-dir>
 export PODMAN_MMMU_RUN_PREFIX=podman_mmmu_pro_$(date +%Y%m%d_%H%M%S)
 
-bash scripts/run_podman_mmmu_pro_readiness.sh all
+bash scripts/validation/run_podman_mmmu_pro_readiness.sh all
 ```
 
 The patched preflight runs inside Podman, keeps thinking mode on, uses at
@@ -110,39 +119,39 @@ phase is ruled out.
 
 ## Full Run
 
-This checkout does not ship MMMU-Pro full-run configs. Start from a checked-in
-example, remove its bounded task selection, retain `data_config: "vision"`, and
-review runtime, output, and concurrency settings before a full sweep.
+The macro configs select the full `vision` split. Add
+`-o benchmark.config.max_tasks=1` for a first smoke and retain
+`data_config: "vision"` when scaling.
 
 ## DirectLLM
 
-Config: `configs/examples/direct_llm_mmmu_pro.yaml`
+Config: `configs/macro_runs/mmmu_pro_directllm_qwen35_27b.yaml`
 
 ```bash
-python -m alphadiana.cli validate configs/examples/direct_llm_mmmu_pro.yaml
-python -m alphadiana.cli run configs/examples/direct_llm_mmmu_pro.yaml \
+python -m alphadiana.cli validate configs/macro_runs/mmmu_pro_directllm_qwen35_27b.yaml
+python -m alphadiana.cli run configs/macro_runs/mmmu_pro_directllm_qwen35_27b.yaml \
   -o benchmark.config.data_config=vision \
   -o benchmark.config.max_tasks=1 -o num_samples=1
 ```
 
 ## OpenClaw
 
-Config: `configs/examples/openclaw_mmmu_pro.yaml`
+Config: `configs/macro_runs/mmmu_pro_openclaw_qwen35_27b.yaml`
 
 ```bash
-python -m alphadiana.cli validate configs/examples/openclaw_mmmu_pro.yaml
-python -m alphadiana.cli run configs/examples/openclaw_mmmu_pro.yaml \
+python -m alphadiana.cli validate configs/macro_runs/mmmu_pro_openclaw_qwen35_27b.yaml
+python -m alphadiana.cli run configs/macro_runs/mmmu_pro_openclaw_qwen35_27b.yaml \
   -o benchmark.config.data_config=vision \
   -o benchmark.config.max_tasks=1 -o num_samples=1
 ```
 
 ## OpenCode
 
-Config: `configs/examples/opencode_mmmu_pro.yaml`
+Config: `configs/macro_runs/mmmu_pro_opencode_qwen35_27b.yaml`
 
 ```bash
-python -m alphadiana.cli validate configs/examples/opencode_mmmu_pro.yaml
-python -m alphadiana.cli run configs/examples/opencode_mmmu_pro.yaml \
+python -m alphadiana.cli validate configs/macro_runs/mmmu_pro_opencode_qwen35_27b.yaml
+python -m alphadiana.cli run configs/macro_runs/mmmu_pro_opencode_qwen35_27b.yaml \
   -o benchmark.config.data_config=vision \
   -o benchmark.config.max_tasks=1 -o num_samples=1
 ```
@@ -191,7 +200,7 @@ export OPENAI_BASE_URL=https://openrouter.ai/api/v1
 export OPENAI_API_KEY=sk-...
 export OPENAI_MODEL_NAME=qwen/qwen3.5-27b
 
-python -m alphadiana.cli run configs/examples/opencode_mmmu_pro.yaml \
+python -m alphadiana.cli run configs/macro_runs/mmmu_pro_opencode_qwen35_27b.yaml \
   -o run_id=pilot_20260420_qwen35_27b_mmmu_pro_opencode_t3_vision_docker_default \
   -o benchmark.config.data_config=vision \
   -o benchmark.config.max_tasks=3 \
@@ -202,7 +211,7 @@ python -m alphadiana.cli run configs/examples/opencode_mmmu_pro.yaml \
 
 ## ZeroClaw
 
-Config: `configs/examples/zeroclaw_mmmu_pro.yaml`
+Config: `configs/macro_runs/mmmu_pro_zeroclaw_qwen35_27b.yaml`
 
 ZeroClaw benchmark smoke is documented only for sandboxed execution:
 
@@ -214,15 +223,15 @@ ZeroClaw benchmark smoke is documented only for sandboxed execution:
 Start ROCK first:
 
 ```bash
-bash scripts/start_zeroclaw.sh
+bash scripts/setup/start_zeroclaw.sh
 source scripts/rock_env.sh
 ```
 
 Then validate and run:
 
 ```bash
-python -m alphadiana.cli validate configs/examples/zeroclaw_mmmu_pro.yaml
-python -m alphadiana.cli run configs/examples/zeroclaw_mmmu_pro.yaml \
+python -m alphadiana.cli validate configs/macro_runs/mmmu_pro_zeroclaw_qwen35_27b.yaml
+python -m alphadiana.cli run configs/macro_runs/mmmu_pro_zeroclaw_qwen35_27b.yaml \
   -o run_id=mmmu_pro_zeroclaw_smoke
 ```
 
@@ -251,29 +260,6 @@ remain useful audit evidence for the old workaround only.
 When the path still fails, current main preserves explicit failure metadata
 such as `metadata.failure_reason=empty_response` or `provider_error` so the
 task JSON remains diagnosable.
-
-### Reproduce The 2026-04-18 Sandbox Smoke
-
-This smoke run intentionally returns a fixed option letter so the benchmark path
-finishes quickly while still proving that attachment upload, prompt plumbing,
-and scoring all complete.
-
-```bash
-export OPENAI_BASE_URL=https://models.sjtu.edu.cn/api/v1/
-export OPENAI_API_KEY=sk-...
-export OPENAI_MODEL_NAME=minimax-m2.5
-
-python -m alphadiana.cli run configs/examples/zeroclaw_mmmu_pro.yaml \
-  -o run_id=pr23_smoke_zeroclaw_mmmupro_minimaxm25_boxA_20260418 \
-  -o output_dir=./results/pr23_zeroclaw_smokes \
-  -o agent.config.system_prompt='Smoke test mode: ignore the question and attachments. Do not use tools. Output exactly $$\\boxed{A}$$ and nothing else.'
-```
-
-Observed local verification on 2026-04-18:
-
-- run_id: `pr23_smoke_zeroclaw_mmmupro_minimaxm25_boxA_20260418`
-- result: dashboard `X`, `predicted=A`, `ground_truth=B`, no `error`
-- execution mode: ROCK sandbox + in-sandbox ZeroClaw CLI
 
 ### Qwen/OpenRouter Vision Pilot (2026-04-19)
 
@@ -304,7 +290,7 @@ export OPENAI_BASE_URL=https://openrouter.ai/api/v1
 export OPENAI_API_KEY=sk-...
 export OPENAI_MODEL_NAME=qwen/qwen3.5-27b
 
-python -m alphadiana.cli run configs/examples/zeroclaw_mmmu_pro.yaml \
+python -m alphadiana.cli run configs/macro_runs/mmmu_pro_zeroclaw_qwen35_27b.yaml \
   -o run_id=pilot_20260419_qwen35_27b_mmmu_pro_zeroclaw_t3_vision_r3 \
   -o benchmark.config.max_tasks=3 \
   -o max_concurrent=1
