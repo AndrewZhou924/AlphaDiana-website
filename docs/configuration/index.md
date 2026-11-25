@@ -4,26 +4,13 @@ sidebar_position: 1
 
 # Configuration
 
-Every AlphaDiana experiment is described by a single YAML file with four required
-sections (`agent`, `benchmark`, `scorer`, plus `sandbox` when needed) and a handful
-of top-level keys (`run_id`, `max_concurrent`, `num_samples`, `output_dir`,
-`metadata`). The file is parsed into the `ExperimentConfig` dataclass and launched
-through the `alphadiana` CLI, where dotted `-o key.path=value` flags can override any
-field at the command line. This page is the orientation map: see
-[Config Schema](./config-schema) for the core fields and
-[CLI and Overrides](./cli-and-overrides) for command syntax and run-id conventions.
-`configs/schema.yaml` is an annotated core-shape reference; harness- and
-benchmark-specific pass-through keys live on their dedicated pages. The
-files under `configs/examples/` are smoke configs, useful as copy-paste starting
-points but not production settings.
+Every AlphaDiana experiment is described by a single YAML file with three required sections (`agent`, `data`, `scorer`), an optional `env` section, and top-level run controls (`run_id`, `max_concurrent`, `num_samples`, `output_dir`, `metadata`). The file is parsed into the `ExperimentConfig` dataclass and launched through the `alphadiana` CLI, where dotted `-o key.path=value` flags can override any field at the command line. This page is the orientation map: see [Config Schema](/docs/configuration/config-schema) for the core fields and [CLI and Overrides](/docs/configuration/cli-and-overrides) for command syntax and run-id conventions. `configs/schema.yaml` is an annotated core-shape reference; harness- and benchmark-specific pass-through keys live on their dedicated pages. Release configs are split into `configs/macro_runs/` for end-to-end benchmarks and `configs/micro_runs/` for tool, skill, and memory intervention presets. Published study conditions are described in [Evaluation Axes](/docs/concepts/evaluation-axes); check a preset against that protocol before calling it a reproduction.
+
+The component names match the Python API. Legacy `benchmark` and `sandbox` sections remain aliases for `data` and `env`. Do not supply both names for one section. Overrides accept either spelling and merge into the same component.
 
 ## The four sections
 
-A config has four blocks plus top-level run controls. The minimal, env-driven
-`direct_llm` example (`configs/examples/direct_llm.yaml`) is the basis for the shape
-below; the `sandbox: null` and `num_samples: 1` lines are shown here for
-illustration (both are optional and default to those values when omitted, so the
-on-disk example leaves them out):
+A config has four blocks plus top-level run controls. The following example illustrates composition with provider variables and one AIME task. The README uses `configs/examples/aime2026_opencode.yaml` for OpenCode on three AIME tasks. This shorter DirectLLM example illustrates the same component names:
 
 ```yaml
 run_id: ""
@@ -32,20 +19,21 @@ agent:
   name: direct_llm
   version: "1.0"
   config:
-    # Leave blank to reuse OPENAI_* from .env via scripts/activate.sh.
+    # Leave blank to reuse exported OPENAI_* provider variables.
     model: ""
     api_base: ""
     api_key: ""
     temperature: 0.6
     max_tokens:
 
-benchmark:
+data:
   name: aime
   config:
-    dataset: "HuggingFaceH4/aime_2024"
+    dataset: "MathArena/aime_2026"
     split: "train"
+    max_tasks: 1
 
-sandbox: null            # null for direct_llm / self-managed OpenCode paths
+env: null            # null for direct_llm / self-managed OpenCode paths
 
 scorer:
   name: numeric
@@ -60,26 +48,21 @@ output_dir: "./results"
 | Section | Required | Selects | Notes |
 | --- | --- | --- | --- |
 | `agent` | yes | the harness | `name` + `version` + open pass-through `config` dict |
-| `benchmark` | yes | the task set | `name` + benchmark-specific `config` |
-| `sandbox` | optional | the execution environment | `null`, or `{name, config}`; required for `terminal_bench` / `osworld` |
+| `data` | yes | the task set | `name` + benchmark-specific `config` |
+| `env` | optional | the execution environment | `null`, or `{name, config}`; required by paths that use an external sandbox; native owners may manage their own runtime |
 | `scorer` | yes | the grader | `name` + scorer-specific `config` |
 
 ## Valid names
 
-These are the values the validator and registries accept. Unknown keys inside any
-`config` block are passed through to the harness untouched.
+These are the values the validator and registries accept. Unknown keys inside any `config` block are passed through to the harness untouched.
 
 | Block | Accepted `name` values |
 | --- | --- |
-| `agent.name` | `direct_llm`, `openclaw`, `opencode`, `zeroclaw`, `swebench_docker`, `terminal_bench2_*` |
-| `scorer.name` | `numeric`, `math_verify`, `exact_match`, `llm_judge`, `swebench_pro`, `swe_bench`, `terminal_bench2`, `imo_verify`, `decodingtrust` |
-| `sandbox.name` | `null`, `local`, `rock`, `podman`, `swebench_container`, `decodingtrust` |
+| `agent.name` | See the complete [agent registry](/docs/architecture/registries#agents), including native executors and task adapters |
+| `scorer.name` | `numeric`, `math_verify`, `exact_match`, `llm_judge`, `swe_bench`, `terminal_bench2`, `imo_verify` |
+| `env.name` | `null`, `local`, `rock`, `podman`, `swebench_container` |
 
-`sandbox: null` is correct for `direct_llm` and for OpenCode controller modes
-that self-manage their runtime. The generic ZeroClaw harness requires a live
-ROCK sandbox. ROCK-backed runs add a
-preflight that checks admin/proxy/redis reachability and port ownership before the
-run starts; non-ROCK runs skip it.
+`env: null` is correct for `direct_llm` and for OpenCode controller modes that self-manage their runtime. ZeroClaw requires a live sandbox or its configured Podman runtime. ROCK-backed runs add a preflight that checks admin/proxy/redis reachability and port ownership before the run starts; non-ROCK runs skip it.
 
 ## Top-level run controls
 
@@ -91,21 +74,13 @@ run starts; non-ROCK runs skip it.
 | `output_dir` | `./results` | where result files and the run report land |
 | `task_retries` | `0` | per-task retry budget (must be `>= 0`); the `from_yaml` path defaults to `0` when the key is absent, though the dataclass default is `1` |
 | `strict_report`, `strict_isolation` | `false` | stricter reporting / isolation gates |
-| `parallel_strategy` | `""` | `process_shards` enables DecodingTrust child-process isolation |
-| `process_shards` | `1` | child-process count; validated as `>= 1` |
 | `metadata` | `{}` | free-form `author` / `gpu` / `notes` tags |
 
-`ExperimentConfig` lives in
-`alphadiana/engine/config/experiment_config.py`;
-`ConfigValidator` lives at `alphadiana/engine/config/validator.py`. Result files
-are written and read through `alphadiana/analysis/io/result_store.py`.
+`ExperimentConfig` lives in `alphadiana/engine/config/experiment_config.py`; `ConfigValidator` lives at `alphadiana/engine/config/validator.py`. Result files are written and read through `alphadiana/results/store.py`.
 
 ## agent.config: the open pass-through
 
-`agent.config` is a free-form dict. The validator only enforces a small required
-core (a non-empty `model` for `direct_llm`, a non-empty `api_base` for most agents
-unless an auto-deploy or podman runtime supplies it); every other key flows straight
-to the harness. Common LLM fields:
+`agent.config` is a free-form dict. The validator only enforces a small required core (a non-empty `model` for `direct_llm`, a non-empty `api_base` for most agents unless an auto-deploy or podman runtime supplies it); every other key flows straight to the harness. Common LLM fields:
 
 | Key | Default | Notes |
 | --- | --- | --- |
@@ -118,66 +93,36 @@ to the harness. Common LLM fields:
 | `capture_logprobs` | harness-specific | DirectLLM defaults to `true`; other transports require explicit support/configuration |
 | `enable_thinking`, `extra_body` | none | reasoning controls; see below |
 
-When the LLM fields are blank, `_apply_agent_env_defaults` fills them from
-`OPENAI_BASE_URL` / `OPENAI_API_KEY` / `OPENAI_MODEL_NAME` (loaded via
-`source scripts/activate.sh`). This is why the example configs leave
-`model`/`api_base`/`api_key` empty.
+When the LLM fields are blank, `_apply_agent_env_defaults` fills them from `OPENAI_BASE_URL` / `OPENAI_API_KEY` / `OPENAI_MODEL_NAME` (exported in the shell, or loaded by the optional ROCK activation script). Release configs use those environment variables directly or rely on the same defaults. Runtime-backed OpenClaw is the important exception: `OPENAI_BASE_URL` remains the upstream provider endpoint, while the runner resolves and supplies the deployed gateway's lower-case `api_base`.
 
-:::caution api_key sentinel
-The validator treats `None`, `""`, and the literal string `EMPTY`
-(case-insensitive) as missing. For a local vLLM endpoint use `api_key: "sk-EMPTY"`
-or another non-empty placeholder. Literal `EMPTY` fails
-validation.
-:::
+> [!CAUTION] **api_key sentinel** The validator treats `None`, `""`, and the literal string `EMPTY` (case-insensitive) as missing. For a local vLLM endpoint use `api_key: "sk-EMPTY"` or another non-empty placeholder. Literal `EMPTY` fails validation.
 
-:::note Reasoning is the experimental variable
-There is no single canonical reasoning field. `direct_llm` reads `enable_thinking`
-and `extra_body`; OpenCode configs use `enable_thinking: true`; ZeroClaw uses
-`runtime_trace_mode: full`. Do not push reasoning controls through CLI overrides on
-contract runs; treat reasoning effort as the variable under study, not plumbing.
-:::
+
+> [!NOTE] **Reasoning is the experimental variable** There is no single canonical reasoning field. `direct_llm` reads `enable_thinking` and `extra_body`; OpenCode configs use `enable_thinking: true`; ZeroClaw uses its provider-specific thinking setting; `runtime_trace_mode: full` controls captured evidence, not model reasoning. Do not push reasoning controls through CLI overrides on contract runs; treat reasoning effort as the variable under study, not plumbing.
+
 
 ## Environment-variable expansion
 
-Strings are expanded in two phases at load time. First, `os.path.expandvars`
-resolves `$VAR` and `${VAR}` in every string (so `${SANDBOX_ID}`,
-`${ROCK_BASE_URL}`, `${OPENAI_BASE_URL}` come from the shell). After the CLI
-overrides are merged, any string that is *wholly* an unresolved `${VAR}` is blanked
-to `""`, so a missing variable degrades to empty rather than leaking a literal
-placeholder.
+Strings are expanded in two phases at load time. First, `os.path.expandvars` resolves `$VAR` and `${VAR}` in every string (so `${SANDBOX_ID}`, `${ROCK_BASE_URL}`, `${OPENAI_BASE_URL}` come from the shell). After the CLI overrides are merged, any string that is *wholly* an unresolved `${VAR}` is blanked to `""`, so a missing variable degrades to empty rather than leaking a literal placeholder.
 
 ## Running and overriding
 
 ```bash
-alphadiana run config.yaml
-alphadiana run config.yaml -o agent.config.temperature=0.5 -o max_concurrent=4
-alphadiana run config.yaml --redo-all     # == -o redo_all=true
+alphadiana compute config.yaml
+alphadiana compute config.yaml -o agent.config.temperature=0.5 -o max_concurrent=4
+alphadiana compute config.yaml --redo-all     # == -o redo_all=true
 alphadiana validate config.yaml
-alphadiana report ./results
+alphadiana analyzer results/<run_id>.jsonl --output-dir figures/<run_id>
 alphadiana batch a.yaml b.yaml --parallel
 alphadiana env                            # ROCK service + port health
 ```
 
-`-o` (long form `--override`) is repeatable and takes a dotted `key.path=value`.
-Values are coerced automatically in order `bool -> int -> float -> str`, so
-`-o num_samples=4` becomes an int and `-o agent.config.stream=false` becomes a bool.
-There is no quoting escape, so a string-valued field that looks numeric will be
-coerced. Re-running the same config resumes from the existing `<run_id>` result
-files (skipping completed task or sample ids) unless `--redo-all` is passed. See
-[CLI and Overrides](./cli-and-overrides) for the full command and run-id reference.
+`-o` (long form `--override`) is repeatable and takes a dotted `key.path=value`. Values are coerced automatically in order `bool -> int -> float -> str`, so `-o num_samples=4` becomes an int and `-o agent.config.stream=false` becomes a bool. There is no quoting escape, so a string-valued field that looks numeric will be coerced. Re-running the same config resumes from the existing `<run_id>` result files (skipping completed task or sample ids) unless `--redo-all` is passed. See [CLI and Overrides](/docs/configuration/cli-and-overrides) for the full command and run-id reference.
 
 ## Editing configs safely
 
-Edit YAML with `sed` or by hand, not by round-tripping through `yaml.safe_dump`:
-the dumper drops comments and block scalars and produces large spurious diffs.
-Downscaled or variant runs must use a distinct `run_id` suffix rather than CLI
-overrides of contract parameters.
+Edit YAML with `sed` or by hand, not by round-tripping through `yaml.safe_dump`: the dumper drops comments and block scalars and produces large spurious diffs. Downscaled or variant runs must use a distinct `run_id` suffix rather than CLI overrides of contract parameters.
 
 ## A note on the configs/ tree
 
-Two grammars coexist under `configs/`. Ordinary per-experiment configs use the
-`ExperimentConfig` shape and run with `alphadiana run`. Campaign manifests such as
-`configs/full_runs/swe_verified_mini.yaml` use a different top-level shape
-(`campaign_id`, `defaults.run_id_prefix`, `models[]`, `path_templates[]`) and are
-consumed by the `rollout_campaign` runner, not by `alphadiana run`. The
-[benchmark guides](../benchmarks/) cover those campaign flows.
+Two grammars coexist under `configs/`. Ordinary per-experiment configs use the `ExperimentConfig` shape and run with `alphadiana compute`. Campaign manifests such as `configs/macro_runs/swe_bench_verified_sweagent_qwen35_27b_campaign.yaml` use a different top-level shape (`campaign_id`, `defaults.run_id_prefix`, `models[]`, `path_templates[]`) and are consumed by the `rollout_campaign` runner, not by `alphadiana compute`. The [benchmark guides](/docs/benchmarks) cover those campaign flows.

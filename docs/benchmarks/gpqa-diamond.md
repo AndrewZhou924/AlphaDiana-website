@@ -8,14 +8,15 @@ GPQA-Diamond evaluates expert-level science multiple-choice questions from
 Run from the repository root:
 
 ```bash
-source scripts/activate.sh
+# Plain package installation; ROCK users instead use scripts/activate.sh.
+source .venv/bin/activate
 
-export OPENAI_BASE_URL=https://models.sjtu.edu.cn/api/v1/
-export OPENAI_API_KEY=sk-...
-export OPENAI_MODEL_NAME=minimax-m2.5
+export OPENAI_BASE_URL=http://127.0.0.1:8011/v1
+export OPENAI_API_KEY=sk-EMPTY
+export OPENAI_MODEL_NAME=Qwen/Qwen3.5-27B
 ```
 
-When running from a local checkout, prefer the module entrypoint:
+For ROCK-backed configurations only, check service health:
 
 ```bash
 python -m alphadiana.cli env
@@ -28,31 +29,30 @@ rate limits.
 
 | Mode | Status | Smoke / Debug Config |
 |---|---|---|
-| `direct_llm` | smoke/debug supported | `configs/examples/direct_llm_gpqa_diamond.yaml` |
-| `openclaw` | smoke/debug supported | `configs/examples/openclaw_gpqa_diamond.yaml` |
-| `opencode` | smoke/debug supported | `configs/examples/opencode_gpqa_diamond.yaml` |
-| `zeroclaw` | smoke/debug supported | `configs/examples/zeroclaw_gpqa_diamond.yaml` |
+| `direct_llm` | smoke/debug supported | `configs/macro_runs/gpqa_directllm_qwen35_27b.yaml` |
+| `openclaw` | smoke/debug supported | `configs/macro_runs/gpqa_openclaw_qwen35_27b.yaml` |
+| `opencode` | smoke/debug supported | `configs/macro_runs/gpqa_opencode_qwen35_27b.yaml` |
+| `zeroclaw` | smoke/debug supported | `configs/macro_runs/gpqa_zeroclaw_qwen35_27b.yaml` |
 
 ## Full Run
 
-This checkout does not ship GPQA-Diamond full-run configs. Use the checked-in
-examples for smoke validation, then create and review a dedicated full config
-with the intended task selection, model contract, output location, and
-concurrency.
+The checked-in macro configs select the full GPQA-Diamond split. Add
+`-o benchmark.config.max_tasks=1` for smoke validation; omit that override only
+after reviewing the model contract, output location, and concurrency.
 
 ## DirectLLM
 
-Config: `configs/examples/direct_llm_gpqa_diamond.yaml`
+Config: `configs/macro_runs/gpqa_directllm_qwen35_27b.yaml`
 
 ```bash
-python -m alphadiana.cli validate configs/examples/direct_llm_gpqa_diamond.yaml
-python -m alphadiana.cli run configs/examples/direct_llm_gpqa_diamond.yaml \
+python -m alphadiana.cli validate configs/macro_runs/gpqa_directllm_qwen35_27b.yaml
+python -m alphadiana.cli run configs/macro_runs/gpqa_directllm_qwen35_27b.yaml \
   -o benchmark.config.max_tasks=1 -o num_samples=1
 ```
 
 ## OpenClaw
 
-Config: `configs/examples/openclaw_gpqa_diamond.yaml`
+Config: `configs/macro_runs/gpqa_openclaw_qwen35_27b.yaml`
 
 Sequential `openclaw` benchmark runs now force a fresh ROCK sandbox session per
 task so gateway/session state cannot leak across questions. Current main also
@@ -60,18 +60,18 @@ skips the OpenClaw chat-completions warmup by default on benchmark runs because
 that warmup could contaminate the first question's default session.
 
 ```bash
-python -m alphadiana.cli validate configs/examples/openclaw_gpqa_diamond.yaml
-python -m alphadiana.cli run configs/examples/openclaw_gpqa_diamond.yaml \
+python -m alphadiana.cli validate configs/macro_runs/gpqa_openclaw_qwen35_27b.yaml
+python -m alphadiana.cli run configs/macro_runs/gpqa_openclaw_qwen35_27b.yaml \
   -o benchmark.config.max_tasks=1 -o num_samples=1
 ```
 
 ## OpenCode
 
-Config: `configs/examples/opencode_gpqa_diamond.yaml`
+Config: `configs/macro_runs/gpqa_opencode_qwen35_27b.yaml`
 
 ```bash
-python -m alphadiana.cli validate configs/examples/opencode_gpqa_diamond.yaml
-python -m alphadiana.cli run configs/examples/opencode_gpqa_diamond.yaml \
+python -m alphadiana.cli validate configs/macro_runs/gpqa_opencode_qwen35_27b.yaml
+python -m alphadiana.cli run configs/macro_runs/gpqa_opencode_qwen35_27b.yaml \
   -o benchmark.config.max_tasks=1 -o num_samples=1
 ```
 
@@ -82,7 +82,7 @@ already present. If you need the old host-process path for debugging, override
 
 ## ZeroClaw
 
-Config: `configs/examples/zeroclaw_gpqa_diamond.yaml`
+Config: `configs/macro_runs/gpqa_zeroclaw_qwen35_27b.yaml`
 
 ZeroClaw benchmark smoke is documented only for sandboxed execution:
 
@@ -93,40 +93,17 @@ ZeroClaw benchmark smoke is documented only for sandboxed execution:
 Start ROCK first:
 
 ```bash
-bash scripts/start_zeroclaw.sh
+bash scripts/setup/start_zeroclaw.sh
 source scripts/rock_env.sh
 ```
 
 Then validate and run:
 
 ```bash
-python -m alphadiana.cli validate configs/examples/zeroclaw_gpqa_diamond.yaml
-python -m alphadiana.cli run configs/examples/zeroclaw_gpqa_diamond.yaml \
+python -m alphadiana.cli validate configs/macro_runs/gpqa_zeroclaw_qwen35_27b.yaml
+python -m alphadiana.cli run configs/macro_runs/gpqa_zeroclaw_qwen35_27b.yaml \
   -o run_id=gpqa_zeroclaw_smoke
 ```
-
-### Reproduce The 2026-04-18 Sandbox Smoke
-
-This smoke run intentionally returns a fixed option letter so the benchmark path
-finishes quickly. Under the smoke playbook, dashboard `X` is still a pass for
-the execution path.
-
-```bash
-export OPENAI_BASE_URL=https://models.sjtu.edu.cn/api/v1/
-export OPENAI_API_KEY=sk-...
-export OPENAI_MODEL_NAME=minimax-m2.5
-
-python -m alphadiana.cli run configs/examples/zeroclaw_gpqa_diamond.yaml \
-  -o run_id=pr23_smoke_zeroclaw_gpqa_minimaxm25_boxA_20260418 \
-  -o output_dir=./results/pr23_zeroclaw_smokes \
-  -o agent.config.system_prompt='Smoke test mode: ignore the question. Do not use tools. Output exactly $$\\boxed{A}$$ and nothing else.'
-```
-
-Observed local verification on 2026-04-18:
-
-- run_id: `pr23_smoke_zeroclaw_gpqa_minimaxm25_boxA_20260418`
-- result: dashboard `X`, `predicted=A`, `ground_truth=D`, no `error`
-- execution mode: ROCK sandbox + in-sandbox ZeroClaw CLI
 
 ## Result Locations
 

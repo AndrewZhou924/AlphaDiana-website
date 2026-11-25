@@ -7,12 +7,12 @@ HLE evaluates multiple-choice Humanity's Last Exam tasks from `cais/hle`.
 Run from the repository root:
 
 ```bash
-source scripts/activate.sh
-export PYTHONPATH=$PWD
+# Plain package installation; ROCK users instead use scripts/activate.sh.
+source .venv/bin/activate
 
-export OPENAI_BASE_URL=https://models.sjtu.edu.cn/api/v1/
-export OPENAI_API_KEY=sk-...
-export OPENAI_MODEL_NAME=minimax-m2.5
+export OPENAI_BASE_URL=http://127.0.0.1:8011/v1
+export OPENAI_API_KEY=sk-EMPTY
+export OPENAI_MODEL_NAME=Qwen/Qwen3.5-27B
 ```
 
 `cais/hle` is gated on HuggingFace. On a fresh machine, export `HF_TOKEN` before running:
@@ -30,10 +30,10 @@ OpenCode Docker controller.
 
 | Mode | Status | Config |
 |---|---|---|
-| `direct_llm` | smoke config available | `configs/examples/direct_llm_hle.yaml` |
-| `opencode` | smoke config available | `configs/examples/opencode_minimax_hle.yaml` |
-| `openclaw` | smoke config available | `configs/examples/openclaw_hle.yaml` |
-| `zeroclaw` | smoke config available | `configs/examples/zeroclaw_hle.yaml` |
+| `direct_llm` | macro config available | `configs/macro_runs/hle_directllm_qwen35_27b.yaml` |
+| `opencode` | macro config available | `configs/macro_runs/hle_opencode_qwen35_27b.yaml` |
+| `openclaw` | macro config available | `configs/macro_runs/hle_openclaw_qwen35_27b.yaml` |
+| `zeroclaw` | macro config available | `configs/macro_runs/hle_zeroclaw_qwen35_27b.yaml` |
 
 The checked-in configs exercise the HLE `multipleChoice` subset. Other HLE
 answer types are not included in the current exact-match scoring path.
@@ -43,40 +43,22 @@ As of April 22, 2026, the loader also treats `image: ""` rows in the current
 attempts on the same snapshot could fail early with
 `HLE: unsupported image type ... str` before this compatibility fix landed.
 
-The DirectLLM and OpenCode configs pin `dataset_index: 1`; the OpenClaw and
-ZeroClaw configs use `max_tasks: 1` and therefore select the first eligible row.
-All four are bounded to one task, but only the first pair explicitly pins row 1.
-
-Current dataset caveat:
-the checked-in smoke row `hle_1` is text-only in the current `cais/hle`
-snapshot. For a real image-backed transport probe, override
-`-o benchmark.config.dataset_index=53`.
-
-Additional April 19, 2026 pilot config:
-
-- `configs/examples/directllm_qwen35_27b_hle_pilot.yaml`
-- `configs/examples/openclaw_qwen35_27b_hle_pilot.yaml`
-- `configs/examples/opencode_qwen35_27b_hle_pilot.yaml`
-
-That pilot config drops the smoke `dataset_index: 1` pin so it can load three
-distinct `multipleChoice` tasks.
-
 ## Full Runs
 
-This checkout does not ship HLE full-run configs. Start from the appropriate
-checked-in example or Qwen pilot, remove the bounded task selector, and review
-the model, output, timeout, and concurrency contract before a full evaluation.
+The macro configs select the full `multipleChoice` subset. Add
+`-o benchmark.config.max_tasks=1` for a first smoke, then remove the override
+only after reviewing the model, output, timeout, and concurrency contract.
 
 ## DirectLLM
 
 ```bash
-python -m alphadiana.cli run configs/examples/direct_llm_hle.yaml \
-  -o run_id=hle_directllm_smoke
+python -m alphadiana.cli run configs/macro_runs/hle_directllm_qwen35_27b.yaml \
+  -o run_id=hle_directllm_smoke -o benchmark.config.max_tasks=1
 ```
 
 On current main, `direct_llm` captures logprobs by default. For a local-vLLM
-Qwen pilot, use `configs/examples/directllm_qwen35_27b_hle_pilot.yaml` and
-review its bounded selection before scaling.
+Qwen run, use `configs/macro_runs/hle_directllm_qwen35_27b.yaml` and add a
+bounded selection before the first smoke.
 
 ## OpenCode
 
@@ -84,22 +66,22 @@ Build the controller image once before using the checked-in OpenCode configs:
 
 ```bash
 docker build --network host \
-  -f alphadiana/benchmarks/terminal_bench2/deploy/dockerfiles/Dockerfile.opencode-controller \
+  -f alphadiana/harness/opencode/deploy/Dockerfile.controller \
   -t alphadiana/tb2-opencode-controller:latest .
 ```
 
 ```bash
-python -m alphadiana.cli run configs/examples/opencode_minimax_hle.yaml \
-  -o run_id=hle_opencode_smoke
+python -m alphadiana.cli run configs/macro_runs/hle_opencode_qwen35_27b.yaml \
+  -o run_id=hle_opencode_smoke -o benchmark.config.max_tasks=1
 ```
 
 The checked-in OpenCode benchmark configs now use Docker controller isolation
 by default. If you need the old host-process path for debugging, override
 `-o agent.config.controller_mode=host`.
 
-The smoke config keeps `timeout: 1800` to allow visible model output before
+The macro config keeps `timeout: 1800` to allow visible model output before
 scoring. The controller image build and caveats are documented in
-the [OpenCode harness guide](../harnesses/opencode).
+the [OpenCode harness guide](/docs/harnesses/opencode).
 
 As of April 22, 2026, current main also stops treating OpenCode provider error
 bodies as normal HLE answers on `qwen3vl`. Historical April 22 artifacts such
@@ -126,7 +108,7 @@ each. A follow-up image-backed smoke,
 ## OpenClaw
 
 ```bash
-python -m alphadiana.cli run configs/examples/openclaw_minimax_hle.yaml \
+python -m alphadiana.cli run configs/macro_runs/hle_openclaw_qwen35_27b.yaml \
   -o run_id=hle_openclaw_smoke
 ```
 
@@ -150,19 +132,19 @@ not as a silent-runner failure.
 ZeroClaw now consumes HLE attachments by writing them into the workspace under
 `attachments/` and mentioning them in the task prompt.
 
-Unlike the AIME quickstart in the main `README.md`, the formal benchmark smoke here is counted only when the task executes inside a ROCK sandbox. Do not clear `agent.config.rock_image` for the benchmark smoke.
+For the ROCK-backed configuration described on this page, the benchmark smoke is counted only when the task executes inside a ROCK sandbox. Do not clear `agent.config.rock_image` for the benchmark smoke.
 
 Start ROCK first:
 
 ```bash
-bash scripts/start_zeroclaw.sh
+bash scripts/setup/start_zeroclaw.sh
 source scripts/rock_env.sh
 ```
 
 If another branch is already using ROCK, edit `scripts/.rock_ports.env` before startup so this worktree gets isolated admin/proxy/redis/ray ports.
 
 ```bash
-python -m alphadiana.cli run configs/examples/zeroclaw_hle.yaml \
+python -m alphadiana.cli run configs/macro_runs/hle_zeroclaw_qwen35_27b.yaml \
   -o run_id=hle_zeroclaw_smoke
 ```
 
@@ -197,48 +179,13 @@ The real-API before/after evidence is
 `fixproof_before_20260422_hle_zeroclaw_qwen3vl_t1` versus
 `fixproof_after_20260422_hle_zeroclaw_qwen3vl_t1`.
 
-### Reproduce The 2026-04-17 Formal Sandbox Smoke
-
-This smoke run intentionally returns a fixed multiple-choice answer to validate the HLE attachment + sandbox plumbing without waiting for full reasoning quality. Under the smoke playbook, dashboard `X` is a pass for the execution path.
-
-```bash
-export OPENAI_BASE_URL=https://models.sjtu.edu.cn/api/v1/
-export OPENAI_API_KEY=sk-...
-export OPENAI_MODEL_NAME=minimax
-export HF_TOKEN=hf_...
-
-python -m alphadiana.cli run configs/examples/zeroclaw_hle.yaml \
-  -o run_id=pr26_formal_smoke_zeroclaw_hle_minimax_rock_cli_boxA_20260417 \
-  -o benchmark.config.dataset_index=1 \
-  -o agent.config.system_prompt='Smoke test mode: ignore the question and attachments. Do not use tools. Output exactly $$\\boxed{A}$$ and nothing else.'
-```
-
-Expected result:
-
-- dashboard: `X`
-- task file exists under `results/zeroclaw_hle_smoke/<run_id>/tasks/`
-- `data[0]` in the single-sample task JSON list has no `error`
-- the recorded task is `hle_1`
-
-Observed local verification on 2026-04-17:
-
-- run_id: `pr26_formal_smoke_zeroclaw_hle_minimax_rock_cli_boxA_20260417`
-- result: dashboard `X`, `predicted=A`, `ground_truth=D`, no `error`
-- execution mode: ROCK sandbox + in-sandbox ZeroClaw CLI
-
 ## Smoke Selection
 
-The checked-in minimax smoke configs pin:
+The checked-in configs select the full `multipleChoice` subset. Add
+`-o benchmark.config.max_tasks=1` for a smoke. The scorer is `exact_match`, so
+the final answer should be one of the multiple-choice options.
 
-- `dataset_index: 1`
-- `answer_types: ["multipleChoice"]`
-- `max_tasks: 1`
-
-The scorer is `exact_match`, so the final answer should be one of the multiple-choice options.
-
-No HLE full-run file is checked in; create and validate one before scaling.
-
-## Qwen/OpenRouter 3-Task Pilot
+## Historical Qwen/OpenRouter 3-Task Pilot
 
 Environment:
 
@@ -255,9 +202,9 @@ export OPENAI_API_KEY=sk-...
 Command:
 
 ```bash
-python -m alphadiana.cli run configs/examples/directllm_qwen35_27b_hle_pilot.yaml
-python -m alphadiana.cli run configs/examples/openclaw_qwen35_27b_hle_pilot.yaml
-python -m alphadiana.cli run configs/examples/opencode_qwen35_27b_hle_pilot.yaml
+python -m alphadiana.cli run configs/macro_runs/hle_directllm_qwen35_27b.yaml
+python -m alphadiana.cli run configs/macro_runs/hle_openclaw_qwen35_27b.yaml
+python -m alphadiana.cli run configs/macro_runs/hle_opencode_qwen35_27b.yaml
 ```
 
 Config note:
@@ -267,7 +214,7 @@ Config note:
 - In the current `cais/hle` snapshot those three rows expose `image: ""`, so
   they are not valid image-backed probes even though the benchmark is
   multimodal in general.
-- The dedicated `direct_llm` and `openclaw` pilot configs therefore pin
+- Historical `direct_llm` and `openclaw` pilot configs pinned
   `dataset_indices: [53, 98, 111]`, which do carry real image payloads and
   preserve `task.attachments.image_1`.
 

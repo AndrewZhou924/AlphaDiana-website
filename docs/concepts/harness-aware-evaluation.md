@@ -30,10 +30,10 @@ across transports. `direct_llm`, OpenCode, and ZeroClaw use `api_base` as the
 provider endpoint. OpenClaw uses lowercase `api_base` for an already-running
 **agent gateway**; its runtime provider endpoint is configured separately as
 `OPENAI_BASE_URL` / `openai_base_url` inside `agent.config`. See
-[Provider endpoints and agent gateways](../getting-started/installation#provider-endpoints-and-agent-gateways).
+[Provider endpoints and agent gateways](/docs/getting-started/installation#provider-endpoints-and-agent-gateways).
 
 Every harness implements the same contract: the `Agent` abstract base class in
-[`alphadiana/harness/base.py`](../architecture/). It defines
+[`alphadiana/harness/base.py`](/docs/architecture/). It defines
 `setup(config: dict)`, `solve(task: BenchmarkTask, sandbox=None) -> AgentResponse`,
 and a no-op `teardown()`, plus class attributes `name` and `version`. The engine
 sets `agent.version`, then calls `setup()` once and `solve()` per task
@@ -51,7 +51,7 @@ extended observability fields such as `reasoning_trajectory`, `request_messages`
 two harnesses are compared on an identical record schema. Raw harness runtime
 artifacts are normalized into these fields by
 `alphadiana/harness/proxies/preservation.py`, and the result store at
-[`alphadiana/analysis/io/result_store.py`](../architecture/) writes them
+[`alphadiana/results/store.py`](/docs/architecture/) writes them
 to disk.
 
 ### The registry
@@ -63,10 +63,10 @@ in `agent.name`:
 
 | `agent.name` | Harness | Scaffold |
 | --- | --- | --- |
-| `direct_llm` | [Direct LLM](#the-direct_llm-baseline) | none (single-turn chat) |
-| `opencode` | [OpenCode](../harnesses/opencode) | `opencode` CLI, multi-turn + tools |
-| `openclaw` | [OpenClaw](../harnesses/openclaw) | OpenClaw gateway + ROCK sandbox |
-| `zeroclaw` | [ZeroClaw](../harnesses/zeroclaw) | ZeroClaw agent loop |
+| `direct_llm` | [Direct LLM](/docs/concepts/#the-baseline-direct_llm) | none (single-turn chat) |
+| `opencode` | [OpenCode](/docs/harnesses/opencode) | `opencode` CLI, multi-turn + tools |
+| `openclaw` | [OpenClaw](/docs/harnesses/openclaw) | OpenClaw gateway + ROCK sandbox |
+| `zeroclaw` | [ZeroClaw](/docs/harnesses/zeroclaw) | ZeroClaw agent loop |
 
 `AgentRegistry.list()` returns the sorted available names; `AgentRegistry.get(name)`
 raises `KeyError` (with the available names embedded in the message) on a miss.
@@ -77,10 +77,10 @@ the `register()` call *and* an import line in the runner.
 
 ## The direct_llm baseline
 
-`DirectLLMAgent` (`alphadiana/harness/direct_llm.py`, `name = "direct_llm"`) is
+`DirectLLMAgent` (`alphadiana/harness/direct_llm/agent.py`, `name = "direct_llm"`) is
 the **no-harness reference**: a single-turn system+user chat to an
 OpenAI-compatible endpoint with **no tools, no multi-turn loop, and no code
-execution**. It is the floor every scaffold is measured against, useful for
+execution**. It is a reference rather than an accuracy floor, useful for
 establishing a clean baseline before measuring the effect of an agent framework.
 
 It deliberately builds its own client with `httpx.Client(trust_env=False)` so
@@ -90,7 +90,7 @@ prefers the boxed value. Reasoning is recovered from `reasoning_content` /
 `reasoning` model-extra fields and from `<think>...</think>` tags.
 
 By default `direct_llm` also captures logprobs (`capture_logprobs=True`) and
-quantizes them to `int16`, so the baseline produces token-entropy data for free.
+quantizes them to `int16`, so token-entropy analysis is available when the endpoint returns usable probability evidence. Capture coverage must still be checked.
 
 ### Config
 
@@ -117,14 +117,14 @@ three connection fields (`OPENAI_MODEL_NAME`, `OPENAI_BASE_URL`,
 | `top_logprobs` | `20` | |
 | `logprobs_format` | `int16` | `int16` or `float` |
 
-:::warning
-For local vLLM, use any non-`EMPTY` string such as `sk-EMPTY`. The literal
-`"EMPTY"` (case-insensitive) is treated as unset and falls back to the
-environment.
-:::
+> [!WARNING]
+> For local vLLM, use any non-`EMPTY` string such as `sk-EMPTY`. The literal
+> `"EMPTY"` (case-insensitive) is treated as unset and falls back to the
+> environment.
+
 
 ```yaml
-# configs/examples/direct_llm_gpqa_diamond.yaml (excerpt)
+# configs/macro_runs/gpqa_directllm_qwen35_27b.yaml (excerpt)
 agent:
   name: direct_llm
   config:
@@ -134,31 +134,27 @@ agent:
 ```
 
 ```bash
-python -m alphadiana.cli validate configs/examples/direct_llm.yaml
-python -m alphadiana.cli run configs/examples/direct_llm.yaml \
+python -m alphadiana.cli validate configs/macro_runs/aime2026_directllm_qwen35_27b.yaml
+python -m alphadiana.cli run configs/macro_runs/aime2026_directllm_qwen35_27b.yaml \
   -o run_id=concept_aime_directllm_t1_k1 \
   -o benchmark.config.max_tasks=1 -o num_samples=1
 ```
 
 ## The agent scaffold tax
 
-A harness is not free. The same multi-turn loop, tool documentation, and skill
-preamble that *can* lift accuracy also injects tokens, latency, parsing steps,
-and new failure modes (timeouts, truncation, tool-call malformation, session
-overflow). On easy or self-contained problems the scaffold often costs more than
-it adds, so the agent can score **below** its own `direct_llm` baseline on the
-identical model and benchmark. We call that gap the **agent scaffold tax**.
+A harness may improve or reduce accuracy relative to the matched `direct_llm`
+baseline. The paper reports effects that vary by model and task; it does not
+establish a universal penalty or identify one runtime mechanism as the cause.
+Read the signed gap:
 
-This is exactly why `direct_llm` is the reference line and not just another
-harness. The interesting quantity is the signed difference
-
-```
+```text
 harness_accuracy − direct_llm_accuracy
 ```
 
-which can be positive (the scaffold pays for itself) or negative (the scaffold
-taxes the model). Reporting an agent number without the matching `direct_llm`
-number hides which side of zero you are on.
+A negative gap is sometimes called an "agent scaffold tax". It is a descriptive
+accuracy difference for that configuration, not a monetary charge or a causal
+estimate of harness overhead. Compare resource use separately, with its coverage
+and timing limitations.
 
 ## Macro and micro studies
 
@@ -166,15 +162,14 @@ AlphaDiana supports two complementary modes of harness-aware study:
 
 - **Macro** — compare whole harness conditions (`direct_llm` vs `opencode` vs
   `openclaw` vs `zeroclaw`) on a fixed model and benchmark, then compare
-  end-to-end accuracy and cost. The harness-specific runtime and transport
+  end-to-end accuracy, recorded output-token use, and elapsed time. The harness-specific runtime and transport
   fields are part of each condition; keep shared budgets fixed and disclose the
   fields that cannot be identical.
 
 - **Micro** — compare a matched scaffold intervention (tool exposure, skill
   loading, memory behavior, and any associated prompt changes) against its
-  baseline condition. Micro studies need surgical control over the request
-  stream, which is what the proxies provide (below). The
-  [Tool / Skill / Memory axes](./evaluation-axes) page covers the ablation
+  baseline condition. Tool filtering uses request-stream controls; skill and memory conditions also require native loading, storage, and reuse policies. The
+  [Tool / Skill / Memory axes](/docs/concepts/evaluation-axes) page covers the ablation
   design.
 
 ### Proxies for micro intervention
@@ -203,11 +198,11 @@ python -m alphadiana.harness.proxies.tool_filter_proxy \
   --harness-strip zeroclaw
 ```
 
-:::note
-Unlike `direct_llm` (which forces `trust_env=False`), `tool_filter_proxy` uses
-`trust_env=True` so it honors `HTTP(S)_PROXY` to reach upstreams on locked-down
-hosts.
-:::
+> [!NOTE]
+> Unlike `direct_llm` (which forces `trust_env=False`), `tool_filter_proxy` uses
+> `trust_env=True` so it honors `HTTP(S)_PROXY` to reach upstreams on locked-down
+> hosts.
+
 
 ## Skills
 
@@ -225,14 +220,14 @@ value disables it; an absolute path is used as-is; a bare name resolves to
 | `opencode` | `shutil.copytree` into `<workdir>/skills/<name>` so the `read` tool can index it |
 | `zeroclaw` | `sandbox.upload()` of each file into `<workspace_dir>/skills/<name>/` |
 
-:::warning
-Skills are **not auto-injected** into context. The system prompt must instruct
-the model to read the mounted `SKILL.md`. Skill efficacy is therefore a
-prompt-level concern, which makes it a clean micro axis to ablate.
-:::
+> [!WARNING]
+> Skills are **not auto-injected** into context. The system prompt must instruct
+> the model to read the mounted `SKILL.md`. Skill efficacy is therefore a
+> prompt-level concern, which makes it a clean micro axis to ablate.
+
 
 ## See also
 
-- [Tool / Skill / Memory axes](./evaluation-axes) — the micro ablation design.
-- [Direct LLM, OpenCode, OpenClaw, ZeroClaw](../harnesses/) — per-harness reference pages.
-- [Benchmark isolation](./isolation-and-fairness) — keeping comparisons fair across harnesses.
+- [Tool / Skill / Memory axes](/docs/concepts/evaluation-axes) — the micro ablation design.
+- [Direct LLM, OpenCode, OpenClaw, ZeroClaw](/docs/harnesses/) — per-harness reference pages.
+- [Benchmark isolation](/docs/concepts/isolation-and-fairness) — keeping comparisons fair across harnesses.

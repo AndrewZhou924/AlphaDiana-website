@@ -48,7 +48,7 @@ With logprob capture enabled, the harness forces full runtime-trace mode. Persis
 
 OpenCode parses JSON output events, preserves its output stream and stderr, and may preserve a session trace or partial model output. The normalized trajectory should be read together with `returncode`, answer-source metadata, and controller artifacts.
 
-OpenClaw preserves gateway request/response data, stream events, logs, and sandbox artifacts available on the selected path. The normal gateway path and `decodingtrust_openclaw_cli` path have different evidence shapes. Timeout-scored-zero responses are allowed to lack the normal completed-stream marker; non-timeout incomplete streams are rejected by the runner integrity guard.
+OpenClaw preserves gateway request/response data, stream events, logs, and sandbox artifacts available on the selected path. Timeout-scored-zero responses are allowed to lack the normal completed-stream marker; non-timeout incomplete streams are rejected by the runner integrity guard.
 
 ## Lifecycle and live status
 
@@ -56,7 +56,7 @@ Runner lifecycle events feed terminal progress and the live status file at `stat
 
 ## Logprob artifacts
 
-The result store can write raw float records and compact Int16 records when metadata uses the expected `logprob_records` and `logprob_int16_records` fields. See [Scoring & Results](./scoring-and-results) for the DirectLLM `logprobs_format: int16` caveat; do not infer sidecar validity merely from a filename.
+The result store can write raw float records and compact Int16 records when metadata uses the expected `logprob_records` and `logprob_int16_records` fields. DirectLLM supplies raw records; ResultStore owns compact conversion. Check references and file contents as described in [Scoring & Results](/docs/architecture/scoring-and-results).
 
 Entropy and behavioral analysis operate on captured records and normalized trajectories. Always report the denominator: tasks without a usable trace or logprob sidecar are not evidence for trace-wide conclusions.
 
@@ -72,8 +72,8 @@ For a claimed observable behavior, inspect at least:
 
 ## Related pages
 
-- [Scoring & Results](./scoring-and-results)
-- [DirectLLM](../harnesses/direct-llm)
-- [OpenCode](../harnesses/opencode)
-- [OpenClaw](../harnesses/openclaw)
-- [ZeroClaw](../harnesses/zeroclaw)
+- [Scoring & Results](/docs/architecture/scoring-and-results)
+- [DirectLLM](/docs/harnesses/direct-llm)
+- [OpenCode](/docs/harnesses/opencode)
+- [OpenClaw](/docs/harnesses/openclaw)
+- [ZeroClaw](/docs/harnesses/zeroclaw)

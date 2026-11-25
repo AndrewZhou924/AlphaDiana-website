@@ -95,7 +95,8 @@
   color: var(--ifm-color-primary);
 }
 
-.activeTab {
+.activeTab,
+.activeTab:hover {
   background: var(--ifm-color-primary);
   color: #fff;
 }

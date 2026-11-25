@@ -13,7 +13,7 @@ A quick mental model: a run is defined by one YAML, parsed into
 `ExperimentConfig` (`alphadiana/engine/config/experiment_config.py`), validated
 by `ConfigValidator` (`alphadiana/engine/config/validator.py`), and executed by
 the runner (`alphadiana/engine/runner.py`). Results are written through the
-result store (`alphadiana/analysis/io/result_store.py`). When something breaks,
+result store (`alphadiana/results/store.py`). When something breaks,
 the symptom usually points to one of those layers.
 
 If a run fails to even start, run `alphadiana validate <config.yaml>` first. It
@@ -121,8 +121,8 @@ The same rule applies on the command line and via environment defaults: prefer
 
 ### Where credentials come from
 
-Many example configs leave `model`, `api_base`, and `api_key` blank and rely on
-environment defaults. During `ExperimentConfig.from_yaml`, blank agent fields
+Release configs use environment placeholders or leave `model`, `api_base`, and
+`api_key` blank. During `ExperimentConfig.from_yaml`, blank agent fields
 are filled from the environment for the standard agents (`direct_llm`,
 `zeroclaw`, `opencode`, and the `terminal_bench2_*` variants):
 
@@ -146,28 +146,28 @@ blanked rather than left as a literal placeholder. A missing variable therefore
 degrades to an empty field, which the validator will flag, rather than leaking
 `${VAR}` into a request.
 
-### OpenClaw sends a provider URL a gateway token
+### OpenClaw provider and gateway URLs are mixed up
 
 OpenClaw has two distinct endpoints. Uppercase `OPENAI_BASE_URL` (or lowercase
 `openai_base_url`) in `agent.config` is the upstream model provider used while
 starting a gateway. Lowercase `agent.config.api_base` is the URL of an
 already-running OpenClaw gateway and is called with `gateway_token`.
 
-The current config loader also copies the shell's `OPENAI_BASE_URL` into a blank
-OpenClaw `api_base`. That can make an auto-deploy config skip gateway startup
-and send its gateway credential directly to the provider. For an OpenClaw
-ROCK/Podman auto-deploy run, use a separate shell variable:
+For runtime-backed OpenClaw (`runtime`, `runtime_backend: podman`, or a
+ROCK/OpenClaw config-path pair), the current loader deliberately leaves
+lower-case `api_base` empty so the runner can deploy and resolve the gateway.
+Use the normal provider variables:
 
 ```bash
-export PROVIDER_BASE_URL=https://provider.example/v1
-unset OPENAI_BASE_URL
-
-python -m alphadiana.cli run <openclaw-config.yaml> \
-  -o agent.config.OPENAI_BASE_URL="$PROVIDER_BASE_URL"
+export OPENAI_BASE_URL=https://provider.example/v1
+export OPENAI_API_KEY=<provider-key>
+export OPENAI_MODEL_NAME=<provider-model>
 ```
 
 If you intentionally use a predeployed gateway, set `agent.config.api_base` to
-that gateway and set the matching `gateway_token`.
+that gateway and set the matching `gateway_token`. If a runtime-backed config
+returns a provider/gateway authentication `401`, check that the YAML does not
+explicitly assign the provider URL to lower-case `agent.config.api_base`.
 
 ## ROCK service not up
 
@@ -192,7 +192,7 @@ alphadiana env   # prints Admin/Proxy/Redis/Ray endpoints and health
 ```
 
 To bring the stack up, follow the ROCK setup steps in the
-[installation guide](./installation). Common causes of a container that exits
+[installation guide](/docs/getting-started/installation). Common causes of a container that exits
 immediately:
 
 - `ROCK_PROJECT_ROOT` is not set (Ray workers need it; restart Ray after
@@ -210,11 +210,11 @@ If the pre-flight reports a port-ownership mismatch, resolve the actual ports
 and write them to the environment file the CLI reads:
 
 ```bash
-python scripts/find_rock_ports.py --write-env scripts/.rock_ports.env
+python scripts/setup/find_rock_ports.py --write-env scripts/.rock_ports.env
 ```
 
-See [../harnesses/openclaw](../harnesses/openclaw) for the OpenClaw reliability
-contract and [../harnesses/zeroclaw](../harnesses/zeroclaw) for the
+See [../harnesses/openclaw](/docs/harnesses/openclaw) for the OpenClaw reliability
+contract and [../harnesses/zeroclaw](/docs/harnesses/zeroclaw) for the
 sandbox-only ZeroClaw path.
 
 ### Docker socket `permission denied`
@@ -236,23 +236,23 @@ If `ray start --head` aborts with `Session name ... does not match persisted
 value ... Perhaps there was an error connecting to Redis`, this checkout's
 isolated Redis still holds stale Ray session metadata. Recreate that checkout's
 `ROCK_REDIS_CONTAINER` and clear its `RAY_TMPDIR` before retrying the Ray
-startup. The start scripts (`scripts/start_zeroclaw.sh`,
-`scripts/start_openclaw.sh`) also restart an unhealthy local Ray head instead of
+startup. The start scripts (`scripts/setup/start_zeroclaw.sh`,
+`scripts/setup/start_openclaw.sh`) also restart an unhealthy local Ray head instead of
 reusing any listener on the GCS port, so re-running them is the simplest fix.
 
 ### `alphadiana env` loses `admin` while the GCS port is still open
 
 A stale Ray head can keep listening on the GCS port (e.g. `6380`) while being
 unhealthy, so `alphadiana env` reports the `admin` endpoint as down. Restart the
-Ray head by re-running `bash scripts/start_zeroclaw.sh` or
-`bash scripts/start_openclaw.sh`.
+Ray head by re-running `bash scripts/setup/start_zeroclaw.sh` or
+`bash scripts/setup/start_openclaw.sh`.
 
 ### `start_async` returns `404`
 
 ROCK admin and proxy bind to different ports, and `/start_async` is served by
 the admin. A `404` usually means the request hit the proxy port instead. The
 admin and proxy ports default to `9000` and `9001`
-(`alphadiana/utils/rock_ports.py`, overridable via `ROCK_ADMIN_PORT` /
+(`alphadiana/engine/sandbox/rock_ports.py`, overridable via `ROCK_ADMIN_PORT` /
 `ROCK_PROXY_PORT`). Disambiguate which process owns which port:
 
 ```bash
@@ -283,7 +283,7 @@ provider from the final `alphadiana.cli run ...` argv or `/proc/<pid>/environ`.
 
 ### Long-lived services and stale env files
 
-`scripts/quickstart.sh` is a bootstrap helper, not a daemon supervisor. If your
+`scripts/setup/quickstart.sh` is a bootstrap helper, not a daemon supervisor. If your
 shell runner reaps background children after a command exits, keep
 `ray start --head --block`, ROCK admin, and ROCK proxy in dedicated long-lived
 terminal sessions for the duration of the run. If you start ROCK admin manually,
@@ -295,7 +295,7 @@ exits with `GCS unavailable` even though the intended Ray head is healthy.
 checkout or the wrong ROCK root, regenerate it:
 
 ```bash
-bash scripts/setup_alphadiana_rock.sh   # or: bash scripts/quickstart.sh
+bash scripts/setup/setup_alphadiana_rock.sh   # or: bash scripts/setup/quickstart.sh
 ```
 
 ## vLLM transient crashes producing `None` records
@@ -357,10 +357,10 @@ Fixes:
   sliced split such as `train[16:17]` with a config that already sets
   `max_tasks`, and do not set both `dataset_index` and `max_tasks` at once.
 
-`configs/examples/` is mixed: some files pin a small smoke, while others load a
-full selected split. Inspect the selectors before launch and add a bounded
-override for a smoke. `configs/full_runs/swe_verified_mini.yaml` is a rollout
-campaign manifest, not a generic `alphadiana run` config.
+`configs/macro_runs/` contains release configs that may load a full selected
+split. Inspect the selectors before launch and add a bounded override for a
+smoke. The `_campaign.yaml` file is a rollout manifest for
+`alphadiana.cli.campaign`, not a generic `alphadiana run` config.
 
 ## Quick checklist
 
@@ -370,7 +370,7 @@ campaign manifest, not a generic `alphadiana run` config.
 | Dataset load fails on a gated set | No access token | `export HF_TOKEN=...` and request access |
 | Agent requests fail oddly | Proxy vars leaking into sandbox | `source scripts/rock_env.sh` |
 | `api_key` rejected at validation | Literal `EMPTY` value | use `sk-EMPTY` |
-| OpenClaw provider returns gateway-auth `401` | Provider URL was loaded into gateway `api_base` | unset shell `OPENAI_BASE_URL`; override `agent.config.OPENAI_BASE_URL` from a differently named variable |
+| OpenClaw provider returns gateway-auth `401` | Runtime config explicitly put the provider URL in lower-case gateway `api_base` | remove that `api_base`; keep the provider in `OPENAI_BASE_URL` / `agent.config.OPENAI_BASE_URL` |
 | Quickstart rejects an empty gateway token | Token generation happens after the current preflight | export a strong random `OPENCLAW_GATEWAY_TOKEN` before quickstart |
 | Pre-flight fails for OpenClaw/ROCK | ROCK services down or wrong ports | `alphadiana env`, then start/repair ROCK |
 | Docker socket `permission denied` | Shell lacks `docker` group | `newgrp docker` (then re-activate env) |
@@ -379,6 +379,6 @@ campaign manifest, not a generic `alphadiana run` config.
 | `start_async` returns `404` | Hit proxy port instead of admin | `ss -ltnp \| grep ':9000\|:9001'` (admin 9000, proxy 9001 by default) |
 | `ROCK proxy failed` after ~120s | Old proxy stream timeout or shared stale ports/env | dedicated env + ports, current `ref/ROCK` patch active |
 | Wrong provider despite exported vars | `OPENAI_BASE_URL:-` default kept stale `.env` value | export `OPENAI_*` explicitly or unset first; check argv |
-| Stale `scripts/.alphadiana_env` | Points at missing checkout/wrong ROCK root | `bash scripts/setup_alphadiana_rock.sh` |
+| Stale `scripts/.alphadiana_env` | Points at missing checkout/wrong ROCK root | `bash scripts/setup/setup_alphadiana_rock.sh` |
 | Records have `predicted: null` | Provider/runtime failure | check `/v1/models`, then rerun the same run id |
 | Run completes with 0 tasks | `max_tasks: 0` | omit `max_tasks` or use a positive count |

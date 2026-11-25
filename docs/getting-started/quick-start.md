@@ -4,275 +4,165 @@ sidebar_position: 3
 
 # Quick Start
 
-This page runs your first benchmark end to end with the `direct_llm` baseline:
-write (or point to) a config, validate it, run it, and read the report. The
-`direct_llm` agent is the simplest path because it needs no sandbox, no gateway,
-and no ROCK services. It is a single-turn system+user chat to an
-OpenAI-compatible endpoint with no tools and no multi-turn loop, which makes it
-the reference baseline against the [harnesses](../harnesses/).
+:::note Compatible source revision
+These examples follow the finalized [README at `5721533`](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/5721533be9c1d66a2e37c6dadc99b0c6ce284c90/README.md), checked on 25 October 2026. The public mirror still lacks the API factories and example YAML used here. Use the development checkout below; repository access is required.
+:::
 
-If you have not installed AlphaDiana yet, start with
-[Installation](./installation) first.
 
-## The flow at a glance
+The examples use **Qwen3.5-27B** as the model and **OpenCode 1.3.2** as the harness. Both the **CLI** and **Python API** run **3 AIME 2026 tasks**, with one sample per task, then analyze the saved results.
 
-Every run follows the same pipeline. A YAML `ExperimentConfig` is loaded,
-benchmark / agent / scorer are resolved from string-keyed registries, tasks are
-expanded into `(task, sample_index)` work items, and each item runs
-`agent.solve -> scorer.score -> ResultStore.append`:
+You need uv, Python ≥ 3.10, Podman, and an OpenAI-compatible model endpoint.
 
-```
-config.yaml
-  → ExperimentConfig.from_yaml      (alphadiana/engine/config/experiment_config.py)
-  → ConfigValidator                 (alphadiana/engine/config/validator.py)
-  → Runner.setup()  resolves benchmark / agent / scorer from registries
-  → Runner.run()    load_tasks → per (task, sample): agent.solve → scorer.score → ResultStore.append
-  → ReportGenerator.generate → RunSummary
-  → Runner.teardown()
-  → results/<run_id>.jsonl  (+ results/<run_id>/...)
-```
+### 1. Install
 
-The CLI entry point is the Click group `main` in `alphadiana/cli.py`; the
-orchestrator is `Runner` in `alphadiana/engine/runner.py`; results are written by
-`ResultStore` in `alphadiana/analysis/io/result_store.py`.
-
-## 1. Point the agent at a model
-
-`direct_llm` builds its own OpenAI client and resolves the model, endpoint, and
-key from config first, then from environment variables. For a local vLLM server
-set:
+Create an isolated Python environment and install the execution and analysis dependencies:
 
 ```bash
-# These names match configs/examples/direct_llm.yaml and the loader fallbacks.
-export OPENAI_MODEL_NAME="Qwen/Qwen3-235B-A22B"
-export OPENAI_BASE_URL="http://127.0.0.1:8011/v1"
-export OPENAI_API_KEY="sk-EMPTY"
+git clone https://github.com/AndrewZhou924/AlphaDiana-dev.git
+cd AlphaDiana-dev
+git checkout 5721533be9c1d66a2e37c6dadc99b0c6ce284c90
+uv venv --python 3.10 .venv
+source .venv/bin/activate
+uv pip install -e '.[analysis,benchmarks,agents]'
 ```
 
-Use `sk-EMPTY` (any non-`EMPTY` string) for a keyless local server. The literal
-string `EMPTY` is treated as blank by both the validator and the agent. For a
-hosted provider, set `OPENAI_BASE_URL=https://openrouter.ai/api/v1` and a real
-key.
+### 2. Set up the model endpoint
 
-## 2. Write (or point to) a config
-
-A ready-made example ships at `configs/examples/direct_llm.yaml`. It is also
-present in the public repository's default branch. The shape is:
-
-```yaml
-run_id: ""              # blank → auto-generated uuid4().hex[:12]
-
-agent:
-  name: direct_llm
-  version: "1.0"
-  config:
-    model: ""            # falls back to OPENAI_MODEL_NAME
-    api_base: ""         # falls back to OPENAI_BASE_URL
-    api_key: ""          # falls back to OPENAI_API_KEY
-    temperature: 0.6
-    max_tokens:
-
-benchmark:
-  name: aime
-  config:
-    dataset: "HuggingFaceH4/aime_2024"
-    split: "train"
-
-scorer:
-  name: numeric
-  config:
-    tolerance: 1e-6
-
-max_concurrent: 1
-output_dir: "./results"
-```
-
-`$VAR` / `${VAR}` placeholders are expanded from the environment at load time.
-An unresolved placeholder becomes a blank string, and for `direct_llm` a blank
-`model` / `api_base` / `api_key` then falls back to `OPENAI_MODEL_NAME` /
-`OPENAI_BASE_URL` / `OPENAI_API_KEY`.
-
-### Top-level keys
-
-| Key | Meaning | Default |
-|---|---|---|
-| `run_id` | Namespaces all output; blank → `uuid4().hex[:12]`; `/` is replaced with `_` | `""` |
-| `agent` | `{name, version, config}`; `name` selects the registered agent | required |
-| `benchmark` | `{name, config}`; `name` selects the dataset loader | required |
-| `scorer` | `{name, config}`; e.g. `exact_match`, `numeric` | required |
-| `sandbox` | `null` (no sandbox) or `{name, config}`; not needed for `direct_llm` | `null` |
-| `max_concurrent` | Worker count; `1` is sequential, otherwise a `ThreadPoolExecutor`; integer in `[1, 64]` | `1` |
-| `num_samples` | Samples per task; drives Pass@k / Avg@k | `1` |
-| `output_dir` | Where `<run_id>.jsonl` and `<run_id>/` are written | `./results` |
-| `metadata` | Free-form notes embedded into each record | `{}` |
-
-### Useful `direct_llm` agent.config keys
-
-| Key | Meaning | Default |
-|---|---|---|
-| `model` / `api_base` / `api_key` | OpenAI-compatible target; blank → env fallback | env |
-| `temperature` | Sampling temperature | `0.7` |
-| `top_p` | Nucleus sampling; only sent when explicitly set | unset (`None`) |
-| `max_tokens` | Output cap; if unset, auto-resolved from the server's `max_model_len - 8192` | auto |
-| `stream` | Stream the completion | `true` |
-| `max_retries` | Retries on rate-limit / timeout / 5xx with exponential backoff | `3` |
-| `system_prompt` | System message; default asks for a `\boxed{}` answer | built-in |
-| `capture_logprobs` / `top_logprobs` | Capture token logprobs; `direct_llm` captures by default | `true` / `20` |
-
-For the full schema and the dotted `-o` override syntax, see
-[Configuration](../configuration/). For agents other than the baseline, see
-[Harnesses](../harnesses/).
-
-## 3. Validate
-
-`validate` runs the same `ConfigValidator` as `run`, but without executing
-anything. It blocks on hard errors (missing `agent.name`, an `agent.version`
-with no digit, `max_concurrent` out of range, a scorer mismatch, and so on):
+Replace the URL and key with your provider's values. The model name must match an ID served by that endpoint.
 
 ```bash
-alphadiana validate configs/examples/direct_llm.yaml \
-  -o benchmark.config.max_tasks=1
+export OPENAI_BASE_URL="https://your-provider.example/v1"
+export OPENAI_API_KEY="your-api-key"
+export OPENAI_MODEL_NAME="Qwen/Qwen3.5-27B"
 ```
 
-Expected output:
+### 3. Build the OpenCode controller image
 
-```
-Config is valid.
-```
-
-You can layer overrides on either `validate` or `run`. Each `-o a.b.c=value` is
-parsed into a nested dict and auto-cast to bool/int/float:
+Run from the repository root with Podman installed:
 
 ```bash
-alphadiana validate configs/examples/direct_llm.yaml \
-  -o benchmark.config.max_tasks=20
+podman build \
+  -f alphadiana/harness/opencode/deploy/Containerfile.podman-controller \
+  -t localhost/alphadiana-opencode-podman:latest \
+  alphadiana/harness/opencode/deploy
 ```
 
-## 4. Run
+Both workflows use this image, which includes OpenCode **1.3.2** and task tools. [Podman&nbsp;setup&nbsp;guide](/docs/benchmarks/podman)
+
+### 4. Run and analyze with the CLI or Python API
+
+Use `agent`, `data`, `scorer` and optional `env` with either interface. `compute` runs tasks; `analyzer` reads saved artifacts. Exports include tables, PDF/SVG/PNG figures, plotted data, source hashes and evidence coverage.
+
+#### CLI
+
+The CLI uses [`configs/examples/aime2026_opencode.yaml`](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/5721533be9c1d66a2e37c6dadc99b0c6ce284c90/configs/examples/aime2026_opencode.yaml). It matches the Python example's `agent`, `data` and `scorer`, with the endpoint from step 2 and image from step 3.
+
+Validate the config, compute the scored artifacts, then analyze and export them:
 
 ```bash
-alphadiana run configs/examples/direct_llm.yaml \
-  -o run_id=quickstart_aime_directllm_t1_k1 \
-  -o benchmark.config.max_tasks=1 \
-  -o num_samples=1
+alphadiana validate configs/examples/aime2026_opencode.yaml
+alphadiana compute configs/examples/aime2026_opencode.yaml
+alphadiana analyzer results/aime_opencode_cli.jsonl --output-dir figures/aime_opencode_cli
 ```
 
-The runner loads the tasks, expands them into `(task, sample_index)` work items,
-and for each one calls `agent.solve` then `scorer.score` then appends a record.
-Runs are checkpoint-resumable: rerunning this command with the same explicit
-`run_id` skips any task that already has a scorer-matching `valid_scored`
-record. Provider/runtime errors
-and no-answer records remain retryable. Timeout-classified outcomes from the
-current harnesses are scored zero with `finish_reason: timeout`, so they are
-checkpoint-complete rather than retried. To ignore the checkpoint and
-recompute everything:
+The run saves scored attempts to `results/aime_opencode_cli.jsonl`.
+The analyzer reads those artifacts and exports measurements to `figures/aime_opencode_cli/`.
+Check the score, `score_status` and evidence coverage when reading the results.
+[Troubleshooting →](/docs/getting-started/troubleshooting)
+
+#### Python API
+
+The Python API composes the same components and passes them to `compute()`.
+Run `python` from the repository root in the same terminal, then execute the example below.
+
+![AlphaDiana functional interface: agent, dataset, environment, scorer, runner, and analysis composition.](/img/paper/api.png)
+
+*Functional interface: experiment components and analysis outputs. [Figure sources](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/5721533be9c1d66a2e37c6dadc99b0c6ce284c90/docs/assets/README.md).*
+
+```python
+import alphadiana as ad
+
+agent = ad.agent(
+    "opencode", version="1.3.2", controller_mode="podman",
+    controller_image="localhost/alphadiana-opencode-podman:latest",
+)
+data = ad.dataset("MathArena/aime_2026", benchmark="aime", max_tasks=3)
+scorer = ad.scorer.create("numeric")
+
+artifacts = ad.runner(
+    run_id="aime_opencode_api", num_samples=1, task_retries=0, strict_report=True,
+).compute(agent=agent, data=data, scorer=scorer)
+
+ad.analyzer(artifacts).export("figures/aime_opencode_api")
+```
+
+`compute()` saves scored attempts in `results/aime_opencode_api.jsonl` and returns artifact references. The export in `figures/aime_opencode_api/` contains the matching tables&nbsp;and&nbsp;figures.
+
+<details>
+<summary>Configuration and API details</summary>
+
+Set run controls such as `run_id`, `num_samples` and `task_retries` at the YAML top level or on `ad.runner(...)`. Use `agent`, `data`, `scorer` and optional `env` for components. Legacy `run`, `benchmark` and `sandbox` remain supported. Give each section one name: `data` or `benchmark`; `env`&nbsp;or&nbsp;`sandbox`.
+
+- Use `ad.scorer.create(...)`, an explicit harness `version=`, and `benchmark=` for hub datasets.
+- OpenCode manages its own Podman controller.
+- For supported harnesses, pass a separate `ad.environment(...)` to `ad.runner(env=...)`.
+
+[Full API guide: compose, reopen, rescore and extend →](/docs/getting-started/python-api)
+
+</details>
+
+### More analysis options
+
+Reopen either workflow's JSONL artifacts without rerunning the agent. Default analysis reads scores, usage counters and native traces. Entropy uses available probability evidence; coverage&nbsp;identifies&nbsp;missing&nbsp;measurements.
+
+<details>
+<summary>Reopen, compare and select export formats</summary>
+
+Reopen either run and export SVG figures through the CLI or Python API:
 
 ```bash
-alphadiana run configs/examples/direct_llm.yaml --redo-all \
-  -o run_id=quickstart_aime_directllm_t1_k1 \
-  -o benchmark.config.max_tasks=1 \
-  -o num_samples=1
+alphadiana analyzer results/aime_opencode_cli.jsonl \
+  --output-dir figures/aime_opencode_cli_reopened --formats svg
 ```
 
-When the run finishes, the CLI prints the headline metrics:
+```python
+import alphadiana as ad
 
-```
-Run completed: quickstart_aime_directllm_t1_k1
-  Accuracy:   <model-dependent value>
-  Mean Score: <model-dependent value>
-  Pass@1:     <model-dependent value>
-  Avg@1:      <model-dependent value>
-  Tasks:      1/1 completed
+ad.analyzer("results/aime_opencode_cli.jsonl").export(
+    "figures/aime_opencode_cli_reopened", formats=("svg",),
+)
 ```
 
-## 5. Read the report
+Use a new export directory. Omit `--output-dir` to print JSON measurements, matching `ad.analyzer(...).compute()`. Compare runs using multiple CLI paths or a Python list.
 
-`run` prints a summary automatically. To regenerate the Markdown report for a
-finished run later, point `report` at the directory containing the `.jsonl`:
+</details>
+
+<details>
+<summary>Add action and failure labels with an analysis model</summary>
+
+Configure an analysis model that can return structured JSON annotations:
 
 ```bash
-alphadiana report ./results
+export ANALYSIS_BASE_URL="https://your-provider.example/v1"
+export ANALYSIS_API_KEY="your-api-key"
+export ANALYSIS_MODEL="your-analysis-model-id"
 ```
 
-It loads `<run_id>.jsonl`, deduplicates by `(task_id, sample_index)`, and prints
-the same `RunSummary` metrics broken out per category.
+Annotate either saved run with `--judge` in CLI or `judge=True` in Python:
 
-## Results layout
-
-`run_id` namespaces everything under `output_dir`. The flat `.jsonl` is the
-source of truth for metrics and checkpointing; the `<run_id>/` directory holds
-the manifest and per-task artifacts:
-
-```
-results/
-  <run_id>.jsonl                      # one JSON record per (task_id, sample_index)
-  <run_id>/
-    run_manifest.json                 # expected task / sample counts, config metadata
-    artifacts/<task_id>/...           # raw runtime artifacts, logprob sidecars
-    tasks/<task_id>.json              # JSON list of samples (even when n=1)
-    lifecycle/<task_id>.jsonl         # per-item lifecycle events
-    status/                           # status / dashboard files
+```bash
+alphadiana analyzer results/aime_opencode_cli.jsonl \
+  --judge --output-dir figures/aime_opencode_cli_annotated
 ```
 
-Each line in `<run_id>.jsonl` carries the problem, the model's answer, the
-score, and observability fields:
+```python
+import alphadiana as ad
 
-```json
-{
-  "task_id": "aime_0",
-  "problem": "Competition math problem...",
-  "ground_truth": "42",
-  "predicted": "42",
-  "correct": true,
-  "score": 1.0,
-  "score_status": "valid_scored",
-  "rationale": "Numeric match within tolerance",
-  "trajectory": [
-    {"role": "user", "content": "..."},
-    {"role": "assistant", "content": "...", "thinking": "..."}
-  ],
-  "token_usage": {"prompt_tokens": 150, "completion_tokens": 1200},
-  "finish_reason": "stop",
-  "wall_time_sec": 47.3,
-  "timestamp": "2026-06-24T..."
-}
+ad.analyzer(
+    "results/aime_opencode_cli.jsonl", judge=True,
+).export("figures/aime_opencode_cli_annotated")
 ```
 
-`predicted` is the agent's extracted answer, `correct` is the scorer's verdict,
-and `score_status` is what checkpointing keys off: only a scorer-matching
-`valid_scored` record counts as complete. Errors are recorded too, with
-`correct: null` and `score: null`, so nothing is silently dropped. Current
-timeout-classified harness outcomes are the exception to the intuitive
-"no-answer means retry" rule: they are normalized to `score: 0`,
-`correct: false`, and `score_status: valid_scored`.
+Use a new export directory. See [annotation requirements and caching](/docs/getting-started/python-api#built-in-measurements).
 
-## Accuracy, Pass@k, and Avg@k
-
-The report metrics come from `ReportGenerator.generate`
-(`alphadiana/analysis/report.py`):
-
-| Metric | Definition |
-|---|---|
-| **Accuracy** | `correct / scored` — fraction correct among records that were actually scored |
-| **Accuracy (total)** | `correct / expected_sample_count` — denominator is the planned count, so unfinished or errored samples count against it |
-| **Mean Score** | Mean of the `score` field over scored records (equals accuracy for binary scorers) |
-| **Pass@k** | Fraction of unique tasks with at least one correct sample (`k = num_samples`) |
-| **Avg@k** | Per task, the correct-sample rate `n_correct / num_samples`, then averaged across tasks |
-
-With `num_samples: 1` (the default), Pass@1 and Avg@1 both equal Accuracy
-because there is exactly one sample per task. They diverge only with
-multi-sample runs. With `num_samples: 4`, for example, Pass@4 rewards getting
-the answer at least once across four draws, while Avg@4 measures average
-per-draw reliability. Choose the sample count required by the study protocol;
-the validator only requires a positive integer.
-
-## Next steps
-
-- Try a different benchmark: [GPQA-Diamond](../benchmarks/gpqa-diamond) or
-  [AIME](../benchmarks/aime). Set `num_samples` above 1 only when you want a
-  multi-sample Pass@k / Avg@k protocol.
-- Swap the baseline for a real agent scaffold: see the
-  [harnesses](../harnesses/) (`opencode`, `openclaw`, `zeroclaw`), which add
-  tools, sandboxes, and memory.
-- Tune the run YAML, overrides, and run-id conventions in
-  [Configuration](../configuration/).
+</details>

@@ -14,9 +14,7 @@ Generic scorer keys are `exact_match`, `numeric`, `math_verify`, and `llm_judge`
 | --- | --- |
 | `imo_verify` | IMO AnswerBench verifier; `math_verify` is rejected for this benchmark |
 | `swe_bench` | Official SWE-bench evaluation adapter |
-| `swebench_pro` | SWE-bench Pro evaluator and resolved metadata |
 | `terminal_bench2` | Binary score from an actually observed verifier reward |
-| `decodingtrust` | Runs the DTAP judge and records task/attack metrics |
 
 Scorers do not share one universal no-answer rationale. Benchmark adapters may interpret missing patches, rewards, verifier output, or official artifacts differently. The universal status is the top-level `score_status`, not benchmark-specific supporting fields.
 
@@ -40,7 +38,11 @@ Task records include response content, `score`, `correct`, rationale, `score_sta
 
 The stable artifact references are `logprobs_float` and `logprobs_int16`, when those files exist.
 
-There is a current DirectLLM caveat: DirectLLM defaults to `logprobs_format: int16`, which places quantized records in `logprob_records` rather than `logprob_int16_records`. The result store therefore treats them as raw input and may quantize them again. Do not claim that this mode preserves a valid float-plus-compact pair until the field contract is corrected and covered by an artifact-shape test. Set `logprobs_format: float` explicitly when artifact fidelity matters.
+DirectLLM preserves raw float observations in `logprob_records` for both
+`logprobs_format` settings. ResultStore owns compact conversion, so captured
+records can produce raw and Int16 sidecars without double quantization. See
+[Main review corrections](https://github.com/AndrewZhou924/AlphaDiana-dev/blob/9dd7a7eb9485b49c1d452116cc06f9fee8111b3a/docs/validation/main-review-fixes.md) for the repair and
+regression scope. Existing damaged historical sidecars remain unchanged.
 
 ## Redaction and sharing
 
@@ -54,7 +56,9 @@ This is defense in depth, not a guarantee that a result bundle is safe to publis
 
 ## `score_status` validity
 
-`infer_score_status()` in `alphadiana/analysis/io/status.py` is the canonical classifier. `valid_scored` requires normal score fields and no disqualifying failure evidence. Common invalid statuses include `unscored`, `preserved_failure`, `no_answer`, `agent_empty_output`, `agent_error`, `provider_error`, `runtime_error`, `verifier_error`, and `scorer_error`.
+`infer_score_status()` in `alphadiana/results/status.py` is the canonical classifier. `valid_scored` requires normal score fields and no disqualifying failure evidence. Common invalid statuses include `unscored`, `preserved_failure`, `no_answer`, `agent_empty_output`, `agent_error`, `provider_error`, `runtime_error`, `verifier_error`, and `scorer_error`.
+
+Evaluator exceptions and machinery failures remain invalid even when a numeric fallback is stored. A candidate judged incorrect is different from an evaluator failing to produce a trustworthy verdict. Preserve error evidence and do not infer a valid score from an ambiguous historical record.
 
 ### Timeout completion
 
@@ -70,15 +74,21 @@ For `terminal_bench2`, ordinary score fields are not sufficient. `verifier_statu
 
 `RunSummary` includes expected/written sample counts, valid and invalid counts, errors, missing samples/tasks, accuracy, mean score, mean wall time, total tokens, Pass@k, Avg@k, and per-category variants. `k` is the configured `num_samples`; the engine does not assign benchmark-specific values.
 
-DecodingTrust adds denominator-scoped fields:
-
-- task-success count, denominator, and rate;
-- attack-success count, denominator, and rate;
-- count of valid DecodingTrust records.
-
-These denominators only include records whose scorer metadata contains the corresponding boolean. Do not infer a full-run rate from a narrower denominator without reporting that scope.
-
 Strict reporting compares the manifest's expected samples with written valid/invalid records and can fail the command when required samples are missing or inconsistent.
+
+## Observational evaluation metrics
+
+Top-level `metrics` are post-run observations, not scorers. The runner first
+creates the authoritative `ScoreResult`, then invokes each metric with deep
+copies of the task, response, and score. Results are persisted under
+`evaluation_metrics`; plugin exceptions are persisted under
+`evaluation_metric_errors` and do not alter the primary score.
+
+Reports and dashboard summaries aggregate numeric observation values
+separately as count, mean, minimum, maximum, and unit. This aggregation includes
+any record that contains the metric, independently of score validity. Use the
+canonical `score_status` fields for benchmark accuracy and the observational
+section only for behavioral analysis.
 
 ## Reading results safely
 
@@ -86,10 +96,10 @@ Strict reporting compares the manifest's expected samples with written valid/inv
 2. Use `infer_score_status`, not the presence of a numeric field alone.
 3. Confirm the scorer name matches the run being analyzed.
 4. Inspect task-level error, trajectory, and artifacts for abnormal rows.
-5. For benchmark-specific claims, inspect the matching verifier, patch, reward, or DTAP judge evidence.
+5. For benchmark-specific claims, inspect the matching verifier, patch, or reward evidence.
 
 ## Related pages
 
-- [Engine & Runner](./engine-and-runner)
-- [Observability & Proxies](./observability)
-- [Registries](./registries)
+- [Engine & Runner](/docs/architecture/engine-and-runner)
+- [Observability & Proxies](/docs/architecture/observability)
+- [Registries](/docs/architecture/registries)

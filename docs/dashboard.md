@@ -9,8 +9,12 @@ monitoring evaluations without editing YAML by hand. It can browse saved runs,
 inspect task trajectories, compare runs, follow job logs, and manage supported
 ROCK sandbox workflows.
 
-The dashboard is a local operations interface, not the static website homepage
+The dashboard is a local operations interface, not the repository documentation
 or the runner's `status/dashboard.txt` terminal-status artifact.
+
+| Create an evaluation | Inspect results |
+|---|---|
+| ![Create an evaluation](/img/dashboard-create.png) | ![Inspect evaluation results](/img/dashboard-results.png) |
 
 ## Install
 
@@ -18,12 +22,13 @@ From the repository root, activate the AlphaDiana environment and install the
 dashboard dependencies:
 
 ```bash
-source scripts/activate.sh
+# Activate the virtual environment used for the README quick start.
+source .venv/bin/activate
 pip install -e '.[dashboard]'
 
-cd alphadiana/analysis/dashboard/frontend
+cd alphadiana/dashboard/frontend
 npm install
-cd ../../../..
+cd ../../..
 ```
 
 Development mode starts Vite and FastAPI separately and reloads source changes.
@@ -32,7 +37,7 @@ Production mode builds the frontend before serving it from FastAPI.
 ## Start
 
 ```bash
-cd alphadiana/analysis/dashboard
+cd alphadiana/dashboard
 ./run.sh
 ```
 
@@ -42,7 +47,7 @@ The launcher prints the selected URLs. It prefers ports `5173` (frontend) and
 To build and serve the frontend and API together:
 
 ```bash
-cd alphadiana/analysis/dashboard
+cd alphadiana/dashboard
 ./run.sh --prod
 ```
 
@@ -79,5 +84,5 @@ ROCK services; browsing DirectLLM results does not.
 - **Sandbox controls** list, probe, and deploy supported ROCK sandboxes.
 
 For result formats, lifecycle events, and logprob capture, see
-[Observability & Proxies](./architecture/observability). For provider and ROCK
-setup, start with [Installation](./getting-started/installation).
+[Observability & Proxies](/docs/architecture/observability). For provider and ROCK
+setup, start with [Installation](/docs/getting-started/installation).

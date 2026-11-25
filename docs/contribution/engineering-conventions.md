@@ -7,8 +7,8 @@ sidebar_position: 4
 Practical rules for editing configs, launching runs, and resuming work without
 surprises. Each item below maps to a real behavior in the AlphaDiana codebase,
 not a style preference. For the full configuration reference see the
-[run guide](../getting-started/quick-start) and the per-harness pages
-under [harnesses](../harnesses/zeroclaw).
+[run guide](/docs/getting-started/quick-start) and the per-harness pages
+under [harnesses](/docs/harnesses/zeroclaw).
 
 ## Edit YAML configs with `sed`, not a YAML dumper
 
@@ -22,7 +22,7 @@ When you need to flip a value, patch the line in place:
 ```bash
 # Good: surgical, comment-preserving
 sed -i '' 's/^  temperature: 0.7/  temperature: 0.6/' \
-  configs/full_runs/swe_verified_mini.yaml
+  configs/macro_runs/swe_bench_verified_sweagent_qwen35_27b_campaign.yaml
 ```
 
 ```python
@@ -62,12 +62,12 @@ to tracked ones. A wildcard add sweeps them in by accident:
 
 ```bash
 # Avoid: tracks whatever happens to be untracked in configs/
-git add configs/full_runs/*.yaml
+git add configs/macro_runs/*.yaml
 ```
 
 ```bash
 # Good: explicit named paths, or stage only already-tracked changes
-git add configs/full_runs/swe_verified_mini.yaml
+git add configs/macro_runs/swe_bench_verified_sweagent_qwen35_27b_campaign.yaml
 git add -u configs/
 ```
 
@@ -94,12 +94,12 @@ rather than leaking the literal placeholder into the request.
 
 ## Run `security_guard` before launching services
 
-`scripts/security_guard.py --check` is a hard pre-flight gate (it is wired into
+`scripts/setup/security_guard.py --check` is a hard pre-flight gate (it is wired into
 `start_openclaw.sh`). A non-zero exit blocks the launch; clear the finding
 before bringing services up.
 
 ```bash
-python3 scripts/security_guard.py --check     # exits non-zero on failure
+python3 scripts/setup/security_guard.py --check     # exits non-zero on failure
 ```
 
 Use `--daemon` for a continuous 10s watch loop, and `SECURITY_GUARD_BYPASS=1`
@@ -134,7 +134,7 @@ scorer does not silently mix results.
 
 `--redo-all` bypasses the checkpoint and recomputes everything. It is exact
 sugar for `-o redo_all=true`, which sets the
-[`ExperimentConfig.redo_all`](../configuration/config-schema) flag.
+[`ExperimentConfig.redo_all`](/docs/configuration/config-schema) flag.
 
 ```bash
 # Resume: only fills in missing tasks/samples

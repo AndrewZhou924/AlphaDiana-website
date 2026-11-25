@@ -4,13 +4,16 @@ sidebar_position: 3
 
 # Registries
 
-AlphaDiana has four class registries: benchmarks, agents, sandboxes, and scorers. Configuration selects a key; `Runner.setup()` imports built-in modules, resolves each key, instantiates the class, and calls `setup()`.
+AlphaDiana has five class registries: benchmarks, agents, sandboxes, scorers,
+and observational metrics. Configuration selects a key; the centralized
+`engine/components.py` imports built-in modules, then `Runner.setup()` resolves each
+key, instantiates the class, and calls `setup()`.
 
-Registration is import-triggered, not discovered by scanning the filesystem. A new implementation normally requires no orchestration-logic change, but its module must be imported by the runner so registration executes.
+Registration is import-triggered, not discovered by scanning the filesystem. A new implementation normally requires no orchestration-logic change, but its module must be included in `engine/components.py` so registration executes.
 
 ## Live inventory
 
-The tables below reflect the registrations imported by `Runner.setup()` in the current source tree.
+The tables below reflect the registrations imported by `engine/components.py` in the current source tree.
 
 ### Benchmarks
 
@@ -18,30 +21,33 @@ The tables below reflect the registrations imported by `Runner.setup()` in the c
 | --- | --- |
 | `aime` | AIME math tasks |
 | `custom` | User-provided task data |
-| `decodingtrust` | DTAP security/utility tasks |
 | `gpqa_diamond` | GPQA Diamond |
 | `hle` | Humanity's Last Exam |
 | `imo_answerbench` | IMO AnswerBench |
 | `mmmu_pro` | MMMU-Pro multimodal tasks |
 | `swe_bench` | SWE-bench |
-| `swebench_pro_os` | SWE-bench Pro open-source split |
 | `terminal_bench2` | TerminalBench 2 |
 
 ### Agents
 
-The first four are generic harness families. The remaining keys are benchmark-specific adapters and should not be conflated with additional general-purpose harness families.
+Generic harnesses and dedicated native executors are listed separately from benchmark-specific adapters in the scope column.
 
 | Key | Scope |
 | --- | --- |
 | `direct_llm` | Generic direct provider baseline |
-| `openclaw` | Generic OpenClaw harness, including the DecodingTrust runtime backend |
+| `openclaw` | Generic OpenClaw gateway and local-memory harness |
 | `opencode` | Generic OpenCode CLI harness |
 | `zeroclaw` | Generic ZeroClaw CLI harness |
+| `pi` | Generic Pi agent in a rootless Podman runtime |
+| `deepseek_harness` | Generic DeepSeek native harness in rootless Podman |
+| `sweagent` | Native SWE-Agent executor for SWE tasks |
+| `terminus2` | Native Terminus2 executor in Harbor-owned TB2 trials |
 | `swebench_docker` | SWE-bench task-container adapter |
 | `terminal_bench2_docker` | TerminalBench 2 baseline adapter |
 | `terminal_bench2_openclaw` | TerminalBench 2 OpenClaw adapter |
 | `terminal_bench2_opencode` | TerminalBench 2 OpenCode adapter |
 | `terminal_bench2_zeroclaw` | TerminalBench 2 ZeroClaw adapter |
+| `terminal_bench2_pi_harbor` | Exact local Pi runtime in Harbor-owned TerminalBench 2 trials |
 
 ### Sandboxes
 
@@ -51,7 +57,6 @@ The first four are generic harness families. The remaining keys are benchmark-sp
 | `podman` | Rootless Podman session |
 | `rock` | Remote/container sandbox through ROCK |
 | `swebench_container` | Task-bound SWE-bench container |
-| `decodingtrust` | Task-bound DTAP environment, MCP tools, and injections |
 
 ### Scorers
 
@@ -63,9 +68,21 @@ The first four are generic harness families. The remaining keys are benchmark-sp
 | `llm_judge` | Model-based judging |
 | `imo_verify` | Required verifier for `imo_answerbench` |
 | `swe_bench` | Official SWE-bench evaluation adapter |
-| `swebench_pro` | SWE-bench Pro evaluator |
 | `terminal_bench2` | Verifier reward scorer |
-| `decodingtrust` | DTAP task/attack judge adapter |
+
+### Observational metrics
+
+| Key | Scope |
+| --- | --- |
+| `answer_length` | Post-run final-answer length plus byte, word, and line metadata |
+
+Per-task observation contracts and the built-in answer-length implementation
+live together in `alphadiana.engine.observations`. Batch analysis over saved
+runs lives in `alphadiana.analysis.measurements`.
+
+Metric plugins implement `EvaluationMetric`, register through
+`MetricRegistry`, and are configured in the top-level `metrics` list. They run
+after the scorer and cannot replace `ScoreResult`.
 
 ## Registration forms
 
@@ -87,14 +104,16 @@ class MyScorer(Scorer):
     ...
 ```
 
-Both forms mutate a process-local registry. Duplicate names raise instead of silently replacing an implementation.
+Both forms mutate a process-local registry. Registering an existing name replaces
+its implementation within that family. Benchmark, agent, sandbox, scorer and
+metric names remain independent.
 
 ## Adding a component
 
 1. Implement the appropriate base class.
 2. Register a stable, lowercase config key in that module.
-3. Add the module import to the relevant import block in `Runner.setup()`.
-4. Add validation for any cross-component constraint.
+3. Add the module import to the relevant function in `engine/components.py`.
+4. Put adapter-specific checks in `validate_experiment_config()` and keep only cross-component rules in the core validator.
 5. Add focused registry/setup tests and one real smoke before claiming runtime support.
 6. Document the new key in the relevant inventory and runbook.
 
@@ -102,7 +121,7 @@ Keeping the import list explicit makes supported built-ins reviewable, but it al
 
 ## Related pages
 
-- [Engine & Runner](./engine-and-runner)
-- [Sandboxes & Isolation](./sandboxes)
-- [Scoring & Results](./scoring-and-results)
-- [Harnesses Overview](../harnesses/)
+- [Engine & Runner](/docs/architecture/engine-and-runner)
+- [Sandboxes & Isolation](/docs/architecture/sandboxes)
+- [Scoring & Results](/docs/architecture/scoring-and-results)
+- [Harnesses Overview](/docs/harnesses/)
